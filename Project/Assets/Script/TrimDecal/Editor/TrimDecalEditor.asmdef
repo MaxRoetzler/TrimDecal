@@ -2,7 +2,8 @@
     "name": "TrimDecal.Editor",
     "rootNamespace": "TrimDecal.Editor",
     "references": [
-        "GUID:7bffb95f63198404e843c7ea622fe0c4"
+        "GUID:7bffb95f63198404e843c7ea622fe0c4",
+        "GUID:d8b63aba1907145bea998dd612889d6b"
     ],
     "includePlatforms": [
         "Editor"

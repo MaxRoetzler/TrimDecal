@@ -1,13 +1,10 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
-    <ui:GroupBox name="shapes">
+    <ui:GroupBox name="group_shapes" text="Trims">
         <ui:ListView name="shapes" show-border="true" show-add-remove-footer="true" show-bound-collection-size="false" />
     </ui:GroupBox>
-    <ui:GroupBox name="settings" style="display: flex;">
+    <ui:GroupBox name="group_settings" style="display: flex;">
         <ui:FloatField label="Grid Size" value="3" is-delayed="true" name="gridSize" />
         <ui:Toggle label="Is Closed" name="isClosed" />
         <ui:Toggle label="Is Flipped" name="isFlipped" />
-        <ui:VisualElement style="flex-direction: row; justify-content: flex-end;">
-            <ui:Button text="Edit" parse-escape-sequences="true" display-tooltip-when-elided="true" name="edit" style="width: 80px;" />
-        </ui:VisualElement>
     </ui:GroupBox>
 </ui:UXML>

@@ -1,21 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Project
+namespace TrimDecal
 {
     [Serializable]
     public class TrimShape
     {
         [SerializeField]
-        private List<TrimPoint> m_Points = new(0);
+        private TrimShapeVertex[] m_Vertices = new TrimShapeVertex[0];
         [SerializeField]
-        private float m_GridSize = 3.0f;
+        private Vector3 m_Normal = new(0f, 1f, 0f);
         [SerializeField]
-        private float3 m_Origin = float3.zero;
-        [SerializeField]
-        private float3 m_Normal = new(0f, 1f, 0f);
+        private float m_GridSize = 1.0f;
         [SerializeField]
         private bool m_IsFlipped = false;
         [SerializeField]
@@ -25,17 +22,12 @@ namespace Project
 
         public int count
         {
-            get => m_Points.Count;
+            get => m_Vertices.Length;
         }
 
-        public TrimPoint this[int i]
+        public TrimShapeVertex this[int i]
         {
-            get => m_Points[i];
-        }
-
-        public float3 origin
-        {
-            get => m_Origin;
+            get => m_Vertices[i];
         }
 
         public float3 normal
@@ -50,7 +42,7 @@ namespace Project
 
         public bool isClosed
         {
-            get => m_IsClosed && m_Points.Count > 2;
+            get => m_IsClosed && m_Vertices.Length > 2;
         }
 
         public bool isFlipped
@@ -62,52 +54,51 @@ namespace Project
 
         public void Update()
         {
-            int pointCount = m_Points.Count;
+            int vertexCount = m_Vertices.Length;
 
-            for (int i = 0; i < pointCount; i++)
+            for (int i = 0; i < vertexCount; i++)
             {
-                TrimPoint point = m_Points[i];
+                TrimShapeVertex vertex = m_Vertices[i];
 
                 if (i == 0) // First point
                 {
                     if (isClosed)
                     {
-                        point.tangentOut = math.normalize(m_Points[i + 1].position - point.position);
-                        point.tangentIn = math.normalize(m_Points[pointCount - 1].position - point.position);
+                        vertex.tangentOut = math.normalize(m_Vertices[i + 1].position - vertex.position);
+                        vertex.tangentIn = math.normalize(m_Vertices[vertexCount - 1].position - vertex.position);
                     }
                     else
                     {
-                        point.tangentOut = math.normalize(m_Points[i + 1].position - point.position);
-                        point.tangentIn = -point.tangentOut;
+                        vertex.tangentOut = math.normalize(m_Vertices[i + 1].position - vertex.position);
+                        vertex.tangentIn = -vertex.tangentOut;
                     }
                 }
-                else if (i == pointCount - 1) // Last point
+                else if (i == vertexCount - 1) // Last point
                 {
                     if (isClosed)
                     {
-                        point.tangentOut = math.normalize(m_Points[0].position - point.position);
-                        point.tangentIn = math.normalize(m_Points[i - 1].position - point.position);
+                        vertex.tangentOut = math.normalize(m_Vertices[0].position - vertex.position);
+                        vertex.tangentIn = math.normalize(m_Vertices[i - 1].position - vertex.position);
                     }
                     else
                     {
-                        point.tangentOut = math.normalize(point.position - m_Points[i - 1].position);
-                        point.tangentIn = -point.tangentOut;
+                        vertex.tangentOut = math.normalize(vertex.position - m_Vertices[i - 1].position);
+                        vertex.tangentIn = -vertex.tangentOut;
                     }
                 }
                 else // Segment point(s)
                 {
-                    point.tangentIn = math.normalize(m_Points[i - 1].position - point.position);
-                    point.tangentOut = math.normalize(m_Points[i + 1].position - point.position);
+                    vertex.tangentIn = math.normalize(m_Vertices[i - 1].position - vertex.position);
+                    vertex.tangentOut = math.normalize(m_Vertices[i + 1].position - vertex.position);
                 }
 
-
-                float angle = math.acos(math.dot(point.tangentIn, point.tangentOut));
+                float angle = math.acos(math.dot(vertex.tangentIn, vertex.tangentOut));
                 float scale = 1.0f / math.sin(angle / 2.0f);
-                float sign = math.cross(point.tangentIn, point.tangentOut).y > 0 ? 1 : -1; // combine with is flipped
+                float sign = math.cross(vertex.tangentIn, vertex.tangentOut).y > 0 ? 1 : -1; // combine with is flipped
 
-                point.bitangent = math.cross(m_Normal, point.tangentOut);
-                point.bisector = math.cross(m_Normal, math.normalize(point.tangentOut - point.tangentIn)) * scale;
-                point.bisector *= m_IsFlipped ? -1 : 1;
+                vertex.bitangent = math.cross(m_Normal, vertex.tangentOut);
+                vertex.bisector = math.cross(m_Normal, math.normalize(vertex.tangentOut - vertex.tangentIn)) * scale;
+                vertex.bisector *= m_IsFlipped ? -1 : 1;
             }
         }
     }

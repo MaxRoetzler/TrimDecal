@@ -1,49 +1,39 @@
-using System.Collections.Generic;
-using Unity.Mathematics;
-using UnityEditor;
 using UnityEngine;
 
-namespace Project
+namespace TrimDecal
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class TrimDecal : MonoBehaviour
     {
         [SerializeField]
-        private List<TrimShape> m_Shapes = new();
+        private TrimProfile m_Profile = null;
         [SerializeField]
-        private float2[] m_Profile = new float2[]
-        {
-            new(1f, 0f),
-            new(0f, 0f),
-            new(0f, 1f),
-        };
-        [SerializeField]
-        private bool m_DebugView = false;
+        private TrimShape[] m_Shapes = new TrimShape[0];
+
         private Mesh m_Mesh;
 
         /////////////////////////////////////////////////////////////////
 
         private void OnValidate()
         {
-            if (m_Mesh == null)
+            if (m_Profile == null)
             {
-                m_Mesh = new Mesh();
+                return;
             }
 
-            m_Shapes[0].Update();
-            TrimMesh.Build(m_Shapes[0], m_Profile, ref m_Mesh);
-            GetComponent<MeshFilter>().mesh = m_Mesh;
-        }
-
-        private void OnDrawGizmos()
-        {
-            if (m_DebugView)
+            if (m_Mesh == null)
             {
-                Gizmos.matrix = transform.localToWorldMatrix;
-                m_Shapes.ForEach(x => TrimDebug.DrawShape(x));
+                m_Mesh = new();
+                GetComponent<MeshFilter>().mesh = m_Mesh;
+            }
 
-                Handles.matrix = transform.localToWorldMatrix;
-                TrimDebug.DrawMesh(m_Mesh);
+            using (TrimMeshContext context = new TrimMeshContext(m_Mesh))
+            {
+                foreach (TrimShape shape in m_Shapes)
+                {
+                    shape.Update();
+                    context.Add(shape, m_Profile);
+                }
             }
         }
     }

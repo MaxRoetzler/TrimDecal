@@ -2,13 +2,13 @@
 using UnityEngine;
 using Unity.Mathematics;
 
-namespace Project
+namespace TrimDecal
 {
     [Serializable]
-    public class TrimPoint
+    public class TrimShapeVertex
     {
         [SerializeField]
-        private float3 m_Position;
+        private Vector3 m_Position;
 
         private float3 m_Bisector;
         private float3 m_Bitangent;
@@ -45,17 +45,6 @@ namespace Project
         {
             get => m_TangentOut;
             set => m_TangentOut = value;
-        }
-
-        /////////////////////////////////////////////////////////////////
-
-        public TrimPoint(float3 position)
-        {
-            m_Position = position;
-            m_Bisector = float3.zero;
-            m_Bitangent = float3.zero;
-            m_TangentIn = float3.zero;
-            m_TangentOut = float3.zero;
         }
     }
 }
