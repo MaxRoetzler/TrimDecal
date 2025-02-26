@@ -123,6 +123,31 @@ namespace TrimDecal.Editor
             return m_Vertices.GetArrayElementAtIndex(index).FindPropertyRelative(nameof(m_Position)).vector3Value;
         }
 
+        public void RemoveVertex(int index)
+        {
+            m_Vertices.DeleteArrayElementAtIndex(index);
+            m_IsDirty = true;
+        }
+
+        public void AddPosition(Vector3 position, int index)
+        {
+            m_Vertices.InsertArrayElementAtIndex(index + 1);
+            m_IsDirty = true;
+
+            SelectVertex(index + 1);
+            this.position = position;
+        }
+
+        public void AddPosition(Vector3 position)
+        {
+            int count = m_Vertices.arraySize;
+            m_Vertices.InsertArrayElementAtIndex(count);
+            m_IsDirty = true;
+
+            SelectVertex(count);
+            this.position = position;
+        }
+
         /////////////////////////////////////////////////////////////
 
         public void ApplyModifiedProperties()

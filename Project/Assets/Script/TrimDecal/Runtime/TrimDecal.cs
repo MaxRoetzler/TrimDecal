@@ -27,13 +27,15 @@ namespace TrimDecal
                 GetComponent<MeshFilter>().mesh = m_Mesh;
             }
 
-            using (TrimMeshContext context = new TrimMeshContext(m_Mesh))
+            using (TrimMeshContext context = new(m_Mesh))
             {
                 foreach (TrimShape shape in m_Shapes)
                 {
                     shape.Update();
                     context.Add(shape, m_Profile);
                 }
+
+                context.Validate();
             }
         }
     }

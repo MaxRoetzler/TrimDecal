@@ -12,10 +12,6 @@ namespace TrimDecal.Editor
         private TrimPropertyContext m_Context;
 
         /////////////////////////////////////////////////////////////////
-
-        public event SelectionChangedHandler onSelectionChanged;
-
-        /////////////////////////////////////////////////////////////////
         
         public TrimVertexHandle(TrimPropertyContext context)
         {
@@ -54,11 +50,29 @@ namespace TrimDecal.Editor
                 float distance = HandleUtility.DistanceToCircle(position, handleSize * 1.5f);
                 if (distance < handleSize * 2.0f)
                 {
-                    m_IsMouseDrag = true;
-                    m_Selection = i;
+                    if (e.control)
+                    {
+                        m_Context.RemoveVertex(i);
+                        m_Selection = -1;
+                        e.Use();
+                    }
 
-                    e.Use();
-                    return;
+                    if (e.shift && !m_Context.isClosed && i == (m_Context.vertexCount - 1))
+                    {
+                        Vector3 worldPosition = GetMouseWorldPosition(e.mousePosition, position);
+                        m_Context.AddPosition(worldPosition);
+                        m_IsMouseDrag = true;
+                        m_Selection = i + 1;
+
+                        e.Use();
+                    }
+                    else
+                    {
+                        m_IsMouseDrag = true;
+                        m_Selection = i;
+
+                        e.Use();
+                    }
                 }
             }
             
@@ -70,7 +84,6 @@ namespace TrimDecal.Editor
                     m_Context.position = worldPosition;
 
                     e.Use();
-                    return;
                 }
 
                 if (e.type == EventType.MouseUp && e.button == 0)
@@ -88,14 +101,29 @@ namespace TrimDecal.Editor
 
         /////////////////////////////////////////////////////////////////
         
+        private Vector3 SnapToGrid(Vector3 position)
+        {
+            if (EditorSnapSettings.gridSnapEnabled)
+            {
+                Vector3 grid = EditorSnapSettings.move;
+
+                return new Vector3()
+                {
+                    x = Mathf.Round(position.x / grid.x) * grid.x,
+                    y = Mathf.Round(position.y / grid.y) * grid.y,
+                    z = Mathf.Round(position.z / grid.z) * grid.z,
+                };
+            }
+            return position;
+        }
+
         private Vector3 GetMouseWorldPosition(Vector2 position, Vector3 origin)
         {
             Ray ray = HandleUtility.GUIPointToWorldRay(position);
 
             if (m_Plane.Raycast(ray, out float distance))
-
             {
-                return ray.GetPoint(distance);
+                return SnapToGrid(ray.GetPoint(distance));
             }
             return origin;
         }

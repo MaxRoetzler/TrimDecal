@@ -55,6 +55,10 @@ namespace TrimDecal
         public void Update()
         {
             int vertexCount = m_Vertices.Length;
+            if (vertexCount < 2)
+            {
+                return;
+            }
 
             for (int i = 0; i < vertexCount; i++)
             {
@@ -92,8 +96,12 @@ namespace TrimDecal
                     vertex.tangentOut = math.normalize(m_Vertices[i + 1].position - vertex.position);
                 }
 
-                float angle = math.acos(math.dot(vertex.tangentIn, vertex.tangentOut));
-                float scale = 1.0f / math.sin(angle / 2.0f);
+                float dot = math.dot(vertex.tangentIn, vertex.tangentOut);
+                dot = math.clamp(dot, -1.0f, 1.0f);
+
+                float angle = math.acos(dot);
+                float halfAngle = math.sin(angle / 2.0f);
+                float scale = (math.abs(halfAngle) > 1e-6f) ? (1.0f / halfAngle) : 1.0f;
                 float sign = math.cross(vertex.tangentIn, vertex.tangentOut).y > 0 ? 1 : -1; // combine with is flipped
 
                 vertex.bitangent = math.cross(m_Normal, vertex.tangentOut);
