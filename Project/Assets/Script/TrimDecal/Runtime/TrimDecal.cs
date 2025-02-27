@@ -13,6 +13,18 @@ namespace TrimDecal
         private Mesh m_Mesh;
 
         /////////////////////////////////////////////////////////////////
+        
+        public int count
+        {
+            get => m_Shapes.Length;
+        }
+
+        public TrimShape this[int i]
+        {
+            get => m_Shapes[i];
+        }
+
+        /////////////////////////////////////////////////////////////////
 
         private void OnValidate()
         {

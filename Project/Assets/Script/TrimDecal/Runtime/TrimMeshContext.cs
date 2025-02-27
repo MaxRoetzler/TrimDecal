@@ -116,18 +116,6 @@ namespace TrimDecal
                     Debug.LogError($"Vertex {i} is too far away: {m_Vertices[i]}");
                 }
             }
-
-            for (int i = 0; i < m_Triangles.Count; i += 3)
-            {
-                Vector3 v0 = m_Vertices[m_Triangles[i]];
-                Vector3 v1 = m_Vertices[m_Triangles[i + 1]];
-                Vector3 v2 = m_Vertices[m_Triangles[i + 2]];
-
-                if (Vector3.Distance(v0, v1) < 0.0001f || Vector3.Distance(v1, v2) < 0.0001f || Vector3.Distance(v2, v0) < 0.0001f)
-                {
-                    Debug.LogError($"Degenerate triangle at index {i / 3}: {v0}, {v1}, {v2}");
-                }
-            }
         }
 
         public void Dispose()

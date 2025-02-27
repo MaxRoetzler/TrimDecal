@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System;
 
 namespace TrimDecal.Editor
 {
@@ -28,78 +29,37 @@ namespace TrimDecal.Editor
 
         /////////////////////////////////////////////////////////////
 
-        public bool hasShapes
+        public void SetVertexPosition(int shapeIndex, int vertexIndex, Vector3 position)
         {
-            get => m_Shapes != null && m_Shapes.arraySize > 0;
+            m_Shape = m_Shapes.GetArrayElementAtIndex(shapeIndex);
+            m_Vertices = m_Shape.FindPropertyRelative(nameof(m_Vertices));
+            m_Vertex = m_Vertices.GetArrayElementAtIndex(vertexIndex);
+            m_Vertex.FindPropertyRelative(nameof(m_Position)).vector3Value = position;
+
+            m_IsDirty = true;
         }
 
-        public int shapeCount
+        public void RemoveVertex(int shapeIndex, int vertexIndex)
         {
-            get => m_Shapes.arraySize;
+            m_Shape = m_Shapes.GetArrayElementAtIndex(shapeIndex);
+            m_Vertices = m_Shape.FindPropertyRelative(nameof(m_Vertices));
+            m_Vertices.DeleteArrayElementAtIndex(vertexIndex);
+
+            m_IsDirty = true;
         }
 
-        public bool isClosed
+        public void InsertVertex(int shapeIndex, int vertexIndex, Vector3 position)
         {
-            get => m_IsClosed.boolValue;
-            set
-            {
-                m_IsClosed.boolValue = value;
-                m_IsDirty = true;
-            }
+            m_Shape = m_Shapes.GetArrayElementAtIndex(shapeIndex);
+            m_Vertices = m_Shape.FindPropertyRelative(nameof(m_Vertices));
+            m_Vertices.InsertArrayElementAtIndex(vertexIndex);
+            m_Vertex = m_Vertices.GetArrayElementAtIndex(vertexIndex);
+            m_Vertex.FindPropertyRelative(nameof(m_Position)).vector3Value = position;
+
+            m_IsDirty = true;
         }
 
-        public bool isFlipped
-        {
-            get => m_IsFlipped.boolValue;
-            set
-            {
-                m_IsFlipped.boolValue = value;
-                m_IsDirty = true;
-            }
-        }
-
-        public Vector3 normal
-        {
-            get => m_Normal.vector3Value;
-            set
-            {
-                m_Normal.vector3Value = value;
-                m_IsDirty = true;
-            }
-        }
-
-        public float gridSize
-        {
-            get => m_GridSize.floatValue;
-            set
-            {
-                m_GridSize.floatValue = value;
-                m_IsDirty = true;
-            }
-        }
-
-        public bool hasVertices
-        {
-            get => m_Vertices != null && m_Vertices.arraySize > 0;
-        }
-
-        public int vertexCount
-        {
-            get => m_Vertices.arraySize;
-        }
-
-        public Vector3 position
-        {
-            get => m_Position.vector3Value;
-            set
-            {
-                m_Position.vector3Value = value;
-                m_IsDirty = true;
-            }
-        }
-
-        /////////////////////////////////////////////////////////////
-
+        /*
         public void SelectShape(int index)
         {
             m_Shape = m_Shapes.GetArrayElementAtIndex(index);
@@ -147,6 +107,7 @@ namespace TrimDecal.Editor
             SelectVertex(count);
             this.position = position;
         }
+        */
 
         /////////////////////////////////////////////////////////////
 

@@ -11,7 +11,8 @@ namespace TrimDecal.Editor
         [SerializeField]
         private VisualTreeAsset m_UxmlDocument;
 
-        private TrimShapeHandle m_ShapeHandle;
+        private TrimDecal m_Decal;
+        private TrimDecalHandle m_Handle;
         private TrimPropertyContext m_Context;
 
         private ListView m_ShapeView;
@@ -38,17 +39,20 @@ namespace TrimDecal.Editor
         private void DuringSceneGUI(SceneView sceneView)
         {
             Handles.matrix = m_Transform.localToWorldMatrix;
-            m_ShapeHandle.DrawShapes();
+            m_Handle.Draw();
+
+            m_Context.ApplyModifiedProperties();
         }
 
         /// Serialized Properties ///////////////////////////////////////
 
         private void FetchProperties()
         {
-            TrimDecal trimDecal = (TrimDecal)target;
-            m_Transform = trimDecal.transform;
+            m_Decal = (TrimDecal)target;
+            m_Transform = m_Decal.transform;
 
-            m_ShapeHandle = new TrimShapeHandle(serializedObject);
+            m_Context = new TrimPropertyContext(serializedObject);
+            m_Handle = new TrimDecalHandle(m_Decal, m_Context);
         }
 
         /// Shape List View /////////////////////////////////////////
