@@ -6,23 +6,40 @@ namespace TrimDecal.Editor
 {
     public class TrimDecalHandle
     {
+        private const float k_VertexMergeDistance = 0.05f;
         private const float k_InteractionDistance = 20.0f;
+        private const float k_DottedLineSpace = 2.0f;
 
         private Plane m_Plane;
-        private TrimDecal m_Decal;
-        private TrimPropertyContext m_Context;
+        private Preview m_Preview;
 
-        private int m_ShapeSelection = -1;
-        private int m_VertexSelection = -1;
+        private TrimDecal m_Decal;
+        private TrimPropertyContext m_Property;
+
+        private int m_ShapeSelection;
+        private int m_VertexSelection;
 
         /////////////////////////////////////////////////////////////////
 
-        public TrimDecalHandle(TrimDecal decal, TrimPropertyContext context)
+        public TrimDecalHandle(TrimDecal decal, TrimPropertyContext property)
         {
-            m_Plane = new();
             m_Decal = decal;
-            m_Context = context;
+            m_Property = property;
+
+            m_Plane = new();
+            m_Preview = new();
+
+            m_ShapeSelection = -1;
+            m_VertexSelection = -1;
         }
+
+        /////////////////////////////////////////////////////////////////
+
+        private delegate void PreviewActionHandler();
+        private delegate void RealizeActionHandler();
+
+        private PreviewActionHandler PreviewAction;
+        private RealizeActionHandler RealizeAction;
 
         /////////////////////////////////////////////////////////////////
 
@@ -34,6 +51,190 @@ namespace TrimDecal.Editor
             }
 
             DrawShapes(m_Decal);
+        }
+
+        /////////////////////////////////////////////////////////////////
+
+        private void PreviewMoveAction()
+        {
+            Handles.color = Color.white;
+            Handles.DotHandleCap(-1, m_Preview.position, Quaternion.identity, 0.02f, EventType.Repaint);
+
+            if (m_Preview.positionIn != null)
+            {
+                Handles.DrawDottedLine(m_Preview.position, m_Preview.positionIn.Value, k_DottedLineSpace);
+            }
+
+            if (m_Preview.positionOut != null)
+            {
+                Handles.DrawDottedLine(m_Preview.position, m_Preview.positionOut.Value, k_DottedLineSpace);
+            }
+
+            // TODO : Validate in/out line segments, check for overlaps and intersections
+            m_Preview.isValid = true;
+        }
+
+        private void RealizeMoveAction()
+        {
+            if (m_Preview.isValid)
+            {
+                if (IsClosedMesh())
+                {
+                    m_Property.SetShapeClosed(m_ShapeSelection, true);
+                    m_Property.RemoveVertex(m_ShapeSelection, m_VertexSelection);
+                    return;
+                }
+                m_Property.SetVertexPosition(m_ShapeSelection, m_VertexSelection, m_Preview.position);
+            }
+        }
+
+        private void SetupMoveAction()
+        {
+            GetPreviewPositions();
+            PreviewAction = PreviewMoveAction;
+            RealizeAction = RealizeMoveAction;
+        }
+
+        /////////////////////////////////////////////////////////////////
+
+        private void PreviewInsertAction()
+        {
+            TrimShape shape = m_Decal[m_ShapeSelection];
+
+            Handles.color = Color.white;
+            Handles.DotHandleCap(-1, m_Preview.position, Quaternion.identity, 0.02f, EventType.Repaint);
+            Handles.DrawDottedLine(shape[m_VertexSelection].position, m_Preview.position, k_DottedLineSpace);
+
+            m_Preview.isValid = true;
+        }
+
+        private void RealizeInsertAction()
+        {
+            // TODO : Doesn't work for first or last index
+
+            if (m_Preview.isValid)
+            {
+                TrimShape shape = m_Decal[m_ShapeSelection];
+
+                int indexA = (m_VertexSelection + 1) % shape.count;
+                int indexB = m_VertexSelection == 0 ? shape.count - 1 : m_VertexSelection - 1;
+                Vector3 positionA = shape[indexA].position;
+                Vector3 positionB = shape[indexB].position;
+                Vector3 position = shape[m_VertexSelection].position;
+
+                Vector3 toA = (positionA - position).normalized;
+                Vector3 toB = (positionB - position).normalized;
+                Vector3 toP = (m_Preview.position - position).normalized;
+
+                float dotA = Vector3.Dot(toA, toP);
+                float dotB = Vector3.Dot(toB, toP);
+
+                m_Property.InsertVertex(m_ShapeSelection, (dotA < dotB) ? m_VertexSelection : indexA, m_Preview.position);
+
+                if (IsClosedMesh())
+                {
+                    m_Property.SetShapeClosed(m_ShapeSelection, true);
+                }
+            }
+        }
+
+        private void SetupInsertAction()
+        {
+            GetPreviewPositions();
+            PreviewAction = PreviewInsertAction;
+            RealizeAction = RealizeInsertAction;
+        }
+
+        /////////////////////////////////////////////////////////////////
+
+        private void PreviewDeleteAction()
+        {
+            TrimShape shape = m_Decal[m_ShapeSelection];
+            Handles.color = Color.red;
+
+            if (m_Preview.positionIn != null)
+            {
+                Handles.DrawAAPolyLine(3.0f, new Vector3[] { shape[m_VertexSelection].position, m_Preview.positionIn.Value });
+            }
+
+            if (m_Preview.positionOut != null)
+            {
+                Handles.DrawAAPolyLine(3.0f, new Vector3[] { shape[m_VertexSelection].position, m_Preview.positionOut.Value });
+            }
+        }
+
+        private void RealizeDeleteAction()
+        {
+            TrimShape shape = m_Decal[m_ShapeSelection];
+
+            if (shape.count <= 2)
+            {
+                m_Property.RemoveShape(m_ShapeSelection);
+                m_VertexSelection = -1;
+                m_ShapeSelection = -1;
+                return;
+            }
+
+            m_Property.RemoveVertex(m_ShapeSelection, m_VertexSelection);
+            m_VertexSelection = -1;
+        }
+
+        private void SetupDeleteAction()
+        {
+            GetPreviewPositions();
+            PreviewAction = PreviewDeleteAction;
+            RealizeAction = RealizeDeleteAction;
+        }
+
+        /////////////////////////////////////////////////////////////////
+
+        private bool IsClosedMesh()
+        {
+            TrimShape shape = m_Decal[m_ShapeSelection];
+            int lastIndex = shape.count - 1;
+
+            if (m_VertexSelection == 0 && Vector3.Distance(m_Preview.position, shape[lastIndex].position) < k_VertexMergeDistance)
+            {
+                return true;
+            }
+
+            if (m_VertexSelection == lastIndex && Vector3.Distance(m_Preview.position, shape[0].position) < k_VertexMergeDistance)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private void GetPreviewPositions()
+        {
+            TrimShape shape = m_Decal[m_ShapeSelection];
+            m_Preview.position = shape[m_VertexSelection].position;
+
+            if (m_VertexSelection == 0)
+            {
+                m_Preview.positionIn = shape.isClosed ? shape[shape.count - 1].position : null;
+                m_Preview.positionOut = shape[m_VertexSelection + 1].position;
+            }
+            else if (m_VertexSelection == shape.count - 1)
+            {
+                m_Preview.positionIn = shape[m_VertexSelection - 1].position;
+                m_Preview.positionOut = shape.isClosed ? shape[0].position : null;
+            }
+            else
+            {
+                m_Preview.positionIn = shape[m_VertexSelection - 1].position;
+                m_Preview.positionOut = shape[m_VertexSelection + 1].position;
+            }
+
+            PreviewAction = PreviewMoveAction;
+            RealizeAction = RealizeMoveAction;
+        }
+
+        private void ResetActions()
+        {
+            m_Preview.isValid = false;
+            PreviewAction = null;
+            RealizeAction = null;
         }
 
         /////////////////////////////////////////////////////////////////
@@ -106,8 +307,6 @@ namespace TrimDecal.Editor
             }
         }
 
-        /////////////////////////////////////////////////////////////////
-
         private void DrawVertex(Event e, TrimShape shape, int i)
         {
             Vector3 position = shape[i].position;
@@ -116,8 +315,14 @@ namespace TrimDecal.Editor
             int controlID = GUIUtility.GetControlID(FocusType.Passive);
             float handleSize = HandleUtility.GetHandleSize(position) * 0.05f;
 
-            Handles.color = GetSelectionColor(isSelected);
-            Handles.DotHandleCap(controlID, position, Quaternion.identity, 0.02f, EventType.Repaint);
+            // Draw handles
+            if (e.type == EventType.Repaint)
+            {
+                Handles.color = GetSelectionColor(isSelected);
+                Handles.DotHandleCap(controlID, position, Quaternion.identity, 0.02f, EventType.Repaint);
+
+                PreviewAction?.Invoke();
+            }
 
             // Ignore viewport navigation
             if (e.alt || e.button != 0)
@@ -125,46 +330,39 @@ namespace TrimDecal.Editor
                 return;
             }
 
-            // Mouse click, select, add or delete vertex
+            // Mouse Down, detect select, add or delete operations
             if (e.type == EventType.MouseDown)
             {
                 float mouseDistance = HandleUtility.DistanceToCircle(position, handleSize * 1.5f);
                 if (mouseDistance < handleSize * 2.0f)
                 {
-                    // Delete vertex
-                    if (e.control)
+                    m_VertexSelection = i;
+
+                    switch (e.modifiers)
                     {
-                        m_Context.RemoveVertex(m_ShapeSelection, i);
-                        m_VertexSelection = -1;
-                        e.Use();
+                        case EventModifiers.Control: SetupDeleteAction(); break;
+                        case EventModifiers.Shift: SetupInsertAction(); break;
+                        default: SetupMoveAction(); break;
                     }
-                    // Append new vertex
-                    else if (e.shift && !shape.isClosed && i == shape.count - 1)
-                    {
-                        if (RaycastPlane(e.mousePosition, out Vector3 mousePosition))
-                        {
-                            m_VertexSelection = shape.count;
-                            m_Context.InsertVertex(m_ShapeSelection, shape.count, mousePosition);
-                            e.Use();
-                        }
-                    }
-                    // Select vertex
-                    else
-                    {
-                        m_VertexSelection = i;
-                        e.Use();
-                    }
+                    e.Use();
                 }
             }
 
-            // Mouse drag, move selected vertex
+            // Mouse Drag, move selected vertex
             if (e.type == EventType.MouseDrag && isSelected)
             {
-                if (RaycastPlane(e.mousePosition, out Vector3 mousePosition))
+                if (RaycastPlane(e.mousePosition, out m_Preview.position))
                 {
-                    m_Context.SetVertexPosition(m_ShapeSelection, m_VertexSelection, mousePosition);
                     e.Use();
                 }
+            }
+
+            // Mosue Up, apply serialized data changes
+            if (e.type == EventType.MouseUp)
+            {
+                RealizeAction?.Invoke();
+                ResetActions();
+                e.Use();
             }
         }
 
@@ -200,9 +398,20 @@ namespace TrimDecal.Editor
             return false;
         }
 
-        private Color GetSelectionColor(bool isSelected)
+        private Color GetSelectionColor(bool state)
         {
-            return isSelected ? Color.yellow : Color.gray;
+            return state ? Color.yellow : Color.gray;
+        }
+
+        /////////////////////////////////////////////////////////////////
+
+        private struct Preview
+        {
+            public bool isValid;
+            public int vertexIndex;
+            public Vector3 position;
+            public Vector3? positionIn;
+            public Vector3? positionOut;
         }
     }
 }

@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using System;
 
 namespace TrimDecal.Editor
 {
@@ -25,6 +24,24 @@ namespace TrimDecal.Editor
         {
             m_SerializedObject = serializedObject;
             m_Shapes = serializedObject.FindProperty(nameof(m_Shapes));
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        public void SetShapeClosed(int shapeIndex, bool state)
+        {
+            m_Shape = m_Shapes.GetArrayElementAtIndex(shapeIndex);
+            m_IsClosed = m_Shape.FindPropertyRelative(nameof(m_IsClosed));
+            m_IsClosed.boolValue = state;
+
+            m_IsDirty = true;
+        }
+
+        public void RemoveShape(int shapeIndex)
+        {
+            m_Shapes.DeleteArrayElementAtIndex(shapeIndex);
+
+            m_IsDirty = true;
         }
 
         /////////////////////////////////////////////////////////////
