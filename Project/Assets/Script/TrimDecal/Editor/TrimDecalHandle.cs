@@ -99,37 +99,50 @@ namespace TrimDecal.Editor
 
         private void PreviewInsertAction()
         {
+            // TODO : Needs to draw two lines for closed shapes...
+
             TrimShape shape = m_Decal[m_ShapeSelection];
+            bool isInTangent = IsPointingAtInTangent();
 
             Handles.color = Color.white;
             Handles.DotHandleCap(-1, m_Preview.position, Quaternion.identity, 0.02f, EventType.Repaint);
             Handles.DrawDottedLine(shape[m_VertexSelection].position, m_Preview.position, k_DottedLineSpace);
+
+            if (m_VertexSelection != 0 && m_VertexSelection != shape.count - 1)
+            {
+                Handles.DrawDottedLine(m_Preview.position, isInTangent ? m_Preview.positionIn.Value : m_Preview.positionOut.Value, k_DottedLineSpace);
+            }
+            else if (m_VertexSelection == 0 && !isInTangent)
+            {
+                Handles.DrawDottedLine(m_Preview.position, m_Preview.positionOut.Value, k_DottedLineSpace);
+            }
+            else if (m_VertexSelection == shape.count - 1 && isInTangent)
+            {
+                Handles.DrawDottedLine(m_Preview.position, m_Preview.positionIn.Value, k_DottedLineSpace);
+            }
 
             m_Preview.isValid = true;
         }
 
         private void RealizeInsertAction()
         {
-            // TODO : Doesn't work for first or last index
-
             if (m_Preview.isValid)
             {
+                int index;
+                bool isInTangent = IsPointingAtInTangent();
                 TrimShape shape = m_Decal[m_ShapeSelection];
 
-                int indexA = (m_VertexSelection + 1) % shape.count;
-                int indexB = m_VertexSelection == 0 ? shape.count - 1 : m_VertexSelection - 1;
-                Vector3 positionA = shape[indexA].position;
-                Vector3 positionB = shape[indexB].position;
-                Vector3 position = shape[m_VertexSelection].position;
+                // Don't wrap index for last vertex
+                if (m_VertexSelection == shape.count - 1)
+                {
+                    index = isInTangent ? m_VertexSelection : shape.count;
+                }
+                else
+                {
+                    index = isInTangent ? m_VertexSelection : (m_VertexSelection + 1) % shape.count;
+                }
 
-                Vector3 toA = (positionA - position).normalized;
-                Vector3 toB = (positionB - position).normalized;
-                Vector3 toP = (m_Preview.position - position).normalized;
-
-                float dotA = Vector3.Dot(toA, toP);
-                float dotB = Vector3.Dot(toB, toP);
-
-                m_Property.InsertVertex(m_ShapeSelection, (dotA < dotB) ? m_VertexSelection : indexA, m_Preview.position);
+                m_Property.InsertVertex(m_ShapeSelection, index, m_Preview.position);
 
                 if (IsClosedMesh())
                 {
@@ -203,6 +216,19 @@ namespace TrimDecal.Editor
                 return true;
             }
             return false;
+        }
+
+        private bool IsPointingAtInTangent()
+        {
+            TrimShape shape = m_Decal[m_ShapeSelection];
+            TrimShapeVertex vertex = shape[m_VertexSelection];
+
+            // Get tangent directions
+            Vector3 toPosition = (m_Preview.position - (Vector3)vertex.position).normalized;
+            float dotIn = Vector3.Dot(vertex.tangentIn, toPosition);
+            float dotOut = Vector3.Dot(vertex.tangentOut, toPosition);
+
+            return dotIn > dotOut;
         }
 
         private void GetPreviewPositions()
