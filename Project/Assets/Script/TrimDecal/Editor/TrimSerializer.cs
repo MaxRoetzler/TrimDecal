@@ -3,7 +3,7 @@ using UnityEditor;
 
 namespace TrimDecal.Editor
 {
-    public class TrimPropertyContext
+    public class TrimSerializer
     {
         private SerializedProperty m_Shapes;
         private SerializedProperty m_Shape;
@@ -20,7 +20,7 @@ namespace TrimDecal.Editor
 
         /////////////////////////////////////////////////////////////
 
-        public TrimPropertyContext(SerializedObject serializedObject)
+        public TrimSerializer(SerializedObject serializedObject)
         {
             m_SerializedObject = serializedObject;
             m_Shapes = serializedObject.FindProperty(nameof(m_Shapes));

@@ -13,7 +13,7 @@ namespace TrimDecal.Editor
 
         private TrimDecal m_Decal;
         private TrimDecalHandle m_Handle;
-        private TrimPropertyContext m_Context;
+        private TrimSerializer m_Context;
 
         private ListView m_ShapeView;
         private SerializedProperty m_Shapes;
@@ -51,7 +51,7 @@ namespace TrimDecal.Editor
             m_Decal = (TrimDecal)target;
             m_Transform = m_Decal.transform;
 
-            m_Context = new TrimPropertyContext(serializedObject);
+            m_Context = new TrimSerializer(serializedObject);
             m_Handle = new TrimDecalHandle(m_Decal, m_Context);
         }
 
