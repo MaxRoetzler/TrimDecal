@@ -1,10 +1,12 @@
-using UnityEditor;
 using UnityEngine;
+using System;
 
 namespace TrimDecal.Editor
 {
-    public abstract class HandleBase
+    public abstract class HandleBase : IHandle
     {
+        protected const float k_DottedLineSpace = 2.0f;
+
         protected bool m_IsActive;
         protected HandleData m_Data;
         protected TrimSerializer m_Serializer;
@@ -19,59 +21,20 @@ namespace TrimDecal.Editor
 
         /////////////////////////////////////////////////////////////////
 
-        public bool isActive
-        {
-            get => m_IsActive;
-        }
+        public event Action onCompleted;
 
         /////////////////////////////////////////////////////////////////
 
         public abstract bool CanEnter(Event e);
         public abstract void Preview(Event e);
-
-        public void Enter(Event e)
-        {
-            m_IsActive = true;
-            OnEnter(e);
-        }
-
-        public void Exit(Event e)
-        {
-            OnExit(e);
-        }
-
-        public void Perform(Event e)
-        {
-            if (e.type == EventType.MouseDown)
-            {
-                OnMouseDown(e);
-                e.Use();
-                return;
-            }
-
-            if (e.type == EventType.MouseUp)
-            {
-                OnMouseUp(e);
-                OnExit(e);
-                m_IsActive = false;
-                e.Use();
-                return;
-            }
-
-            if (e.type == EventType.MouseMove)
-            {
-                OnMouseMove(e);
-                e.Use();
-                return;
-            }
-        }
+        public abstract void Perform(Event e);
+        public abstract void Start(Event e);
 
         /////////////////////////////////////////////////////////////////
-
-        protected abstract void OnExit(Event e);
-        protected abstract void OnEnter(Event e);
-        protected virtual void OnMouseUp(Event e) { }
-        protected virtual void OnMouseDown(Event e) { }
-        protected virtual void OnMouseMove(Event e) { }
+        
+        protected void NotifyHandleCompleted()
+        {
+            onCompleted();
+        }
     }
 }

@@ -14,62 +14,46 @@ namespace TrimDecal.Editor
             return e.control && m_Data.vertexIndex > -1;
         }
 
+        public override void Start(Event e)
+        {
+            m_Data.Setup();
+        }
+
         public override void Preview(Event e)
         {
-            Handles.DotHandleCap(m_Data.controlID, m_Data.position, Quaternion.identity, 0.02f, EventType.Repaint);
+            TrimShape shape = m_Data.decal[m_Data.shapeIndex];
+            Handles.color = Color.red;
+
+            if (m_Data.positionPrev != null)
+            {
+                Handles.DrawAAPolyLine(3.0f, new Vector3[] { shape[m_Data.vertexIndex].position, m_Data.positionPrev.Value });
+            }
+
+            if (m_Data.positionNext != null)
+            {
+                Handles.DrawAAPolyLine(3.0f, new Vector3[] { shape[m_Data.vertexIndex].position, m_Data.positionNext.Value });
+            }
         }
 
-        /////////////////////////////////////////////////////////////////
-
-        protected override void OnEnter(Event e)
+        public override void Perform(Event e)
         {
-            Debug.Log("Enter Vertex Delete");
+            if (e.type == EventType.MouseUp)
+            {
+                TrimShape shape = m_Data.decal[m_Data.shapeIndex];
+
+                if (shape.count <= 2)
+                {
+                    m_Serializer.RemoveShape(m_Data.shapeIndex);
+                    m_Data.vertexIndex = -1;
+                    m_Data.shapeIndex = -1;
+                    return;
+                }
+
+                m_Serializer.RemoveVertex(m_Data.shapeIndex, m_Data.vertexIndex);
+                m_Data.vertexIndex = -1;
+
+                NotifyHandleCompleted();
+            }
         }
-
-        protected override void OnExit(Event e)
-        {
-            Debug.Log("Exit Vertex Delete");
-        }
-
-        /*
-       private void PreviewDeleteAction()
-       {
-           TrimShape shape = m_Decal[m_ShapeSelection];
-           Handles.color = Color.red;
-
-           if (m_Preview.positionIn != null)
-           {
-               Handles.DrawAAPolyLine(3.0f, new Vector3[] { shape[m_VertexSelection].position, m_Preview.positionIn.Value });
-           }
-
-           if (m_Preview.positionOut != null)
-           {
-               Handles.DrawAAPolyLine(3.0f, new Vector3[] { shape[m_VertexSelection].position, m_Preview.positionOut.Value });
-           }
-       }
-
-       private void RealizeDeleteAction()
-       {
-           TrimShape shape = m_Decal[m_ShapeSelection];
-
-           if (shape.count <= 2)
-           {
-               m_Property.RemoveShape(m_ShapeSelection);
-               m_VertexSelection = -1;
-               m_ShapeSelection = -1;
-               return;
-           }
-
-           m_Property.RemoveVertex(m_ShapeSelection, m_VertexSelection);
-           m_VertexSelection = -1;
-       }
-
-       private void SetupDeleteAction()
-       {
-           GetPreviewPositions();
-           PreviewAction = PreviewDeleteAction;
-           RealizeAction = RealizeDeleteAction;
-       }
-*/
     }
 }

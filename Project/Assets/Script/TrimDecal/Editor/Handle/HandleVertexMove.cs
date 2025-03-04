@@ -14,63 +14,48 @@ namespace TrimDecal.Editor
             return m_Data.vertexIndex > -1;
         }
 
+        public override void Start(Event e)
+        {
+            m_Data.Setup();
+        }
+
         public override void Preview(Event e)
         {
-            Handles.DotHandleCap(m_Data.controlID, m_Data.position, Quaternion.identity, 0.02f, EventType.Repaint);
+            Handles.color = Color.white;
+            Handles.DotHandleCap(-1, m_Data.position, Quaternion.identity, 0.02f, EventType.Repaint);
+
+            if (m_Data.positionPrev != null)
+            {
+                Handles.DrawDottedLine(m_Data.position, m_Data.positionPrev.Value, k_DottedLineSpace);
+            }
+
+            if (m_Data.positionNext != null)
+            {
+                Handles.DrawDottedLine(m_Data.position, m_Data.positionNext.Value, k_DottedLineSpace);
+            }
         }
 
-        /////////////////////////////////////////////////////////////////
-
-        protected override void OnEnter(Event e)
+        public override void Perform(Event e)
         {
-            Debug.Log("Enter Vertex Move");
+            if (e.type == EventType.MouseDrag)
+            {
+                RaycastUtility.RaycastPlane(m_Data.plane, e.mousePosition, out m_Data.position);
+            }
+
+            if (e.type == EventType.MouseUp)
+            {
+                if (m_Data.IsClosedMesh())
+                {
+                    m_Serializer.SetShapeClosed(m_Data.shapeIndex, true);
+                    m_Serializer.RemoveVertex(m_Data.shapeIndex, m_Data.vertexIndex);
+                }
+                else
+                {
+                    m_Serializer.SetVertexPosition(m_Data.shapeIndex, m_Data.vertexIndex, m_Data.position);
+                }
+
+                NotifyHandleCompleted();
+            }
         }
-
-        protected override void OnExit(Event e)
-        {
-            Debug.Log("Exit Vertex Move");
-        }
-
-        /*
-        private void PreviewMoveAction()
-       {
-           Handles.color = Color.white;
-           Handles.DotHandleCap(-1, m_Preview.position, Quaternion.identity, 0.02f, EventType.Repaint);
-
-           if (m_Preview.positionIn != null)
-           {
-               Handles.DrawDottedLine(m_Preview.position, m_Preview.positionIn.Value, k_DottedLineSpace);
-           }
-
-           if (m_Preview.positionOut != null)
-           {
-               Handles.DrawDottedLine(m_Preview.position, m_Preview.positionOut.Value, k_DottedLineSpace);
-           }
-
-           // TODO : Validate in/out line segments, check for overlaps and intersections
-           m_Preview.isValid = true;
-       }
-
-       private void RealizeMoveAction()
-       {
-           if (m_Preview.isValid)
-           {
-               if (IsClosedMesh())
-               {
-                   m_Property.SetShapeClosed(m_ShapeSelection, true);
-                   m_Property.RemoveVertex(m_ShapeSelection, m_VertexSelection);
-                   return;
-               }
-               m_Property.SetVertexPosition(m_ShapeSelection, m_VertexSelection, m_Preview.position);
-           }
-       }
-
-       private void SetupMoveAction()
-       {
-           GetPreviewPositions();
-           PreviewAction = PreviewMoveAction;
-           RealizeAction = RealizeMoveAction;
-       }
-*/
     }
 }

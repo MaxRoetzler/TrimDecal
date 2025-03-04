@@ -7,28 +7,18 @@ namespace TrimDecal.Editor
     public class TrimDecalHandle
     {
         private const float k_ShapeSelectDistance = 10.0f;
-        private const float k_VertexMergeDistance = 0.05f;
 
-        private Plane m_Plane;
-        private Preview m_Preview;
-
+        private IHandle m_Handle;
+        private IHandle[] m_Handles;
+        private MouseCursor m_Cursor;
         private HandleData m_Data;
         private TrimDecal m_Decal;
-        private TrimSerializer m_Serializer;
-
-        private int m_ShapeSelection;
-        private int m_VertexSelection;
-
-        private HandleBase m_Handle;
-        private HandleBase[] m_Handles;
 
         /////////////////////////////////////////////////////////////////
 
         public TrimDecalHandle(TrimDecal decal, TrimSerializer serializer)
         {
             m_Decal = decal;
-            m_Serializer = serializer;
-
             m_Data = new(decal);
             m_Handles = new HandleBase[]
             {
@@ -36,13 +26,6 @@ namespace TrimDecal.Editor
                 new HandleVertexInsert(m_Data, serializer),
                 new HandleVertexMove(m_Data, serializer),
             };
-            m_Handle = m_Handles[2];
-
-            m_Plane = new();
-            m_Preview = new();
-
-            m_ShapeSelection = -1;
-            m_VertexSelection = -1;
         }
 
         /////////////////////////////////////////////////////////////////
@@ -63,19 +46,12 @@ namespace TrimDecal.Editor
             {
                 // Draw Scene View handles
                 DrawHandles(e);
-                m_Handle.Preview(e);
+                m_Handle?.Preview(e);
             }
 
             // Skip layout update & viewport navigation
             if (e.type == EventType.Layout || e.alt || e.button != 0)
             {
-                return;
-            }
-
-            // Update active handle
-            if (m_Handle.isActive)
-            {
-                m_Handle.Perform(e);
                 return;
             }
 
@@ -87,70 +63,15 @@ namespace TrimDecal.Editor
                 {
                     if (handle.CanEnter(e))
                     {
-                        m_Handle.Exit(e);
                         m_Handle = handle;
-                        m_Handle.Enter(e);
+                        m_Handle.onCompleted += () => m_Handle = null;
+                        m_Handle.Start(e);
                         break;
                     }
                 }
             }
-        }
 
-        private bool IsClosedMesh()
-        {
-            TrimShape shape = m_Decal[m_ShapeSelection];
-            int lastIndex = shape.count - 1;
-
-            if (m_VertexSelection == 0 && Vector3.Distance(m_Preview.position, shape[lastIndex].position) < k_VertexMergeDistance)
-            {
-                return true;
-            }
-
-            if (m_VertexSelection == lastIndex && Vector3.Distance(m_Preview.position, shape[0].position) < k_VertexMergeDistance)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        private bool IsPointingAtInTangent()
-        {
-            TrimShape shape = m_Decal[m_ShapeSelection];
-            TrimShapeVertex vertex = shape[m_VertexSelection];
-
-            // Get tangent directions
-            Vector3 toPosition = (m_Preview.position - (Vector3)vertex.position).normalized;
-            float dotIn = Vector3.Dot(vertex.tangentIn, toPosition);
-            float dotOut = Vector3.Dot(vertex.tangentOut, toPosition);
-
-            return dotIn > dotOut;
-        }
-
-        private void GetPreviewPositions()
-        {
-            TrimShape shape = m_Decal[m_ShapeSelection];
-            m_Preview.position = shape[m_VertexSelection].position;
-
-            if (m_VertexSelection == 0)
-            {
-                m_Preview.positionIn = shape.isClosed ? shape[shape.count - 1].position : null;
-                m_Preview.positionOut = shape[m_VertexSelection + 1].position;
-            }
-            else if (m_VertexSelection == shape.count - 1)
-            {
-                m_Preview.positionIn = shape[m_VertexSelection - 1].position;
-                m_Preview.positionOut = shape.isClosed ? shape[0].position : null;
-            }
-            else
-            {
-                m_Preview.positionIn = shape[m_VertexSelection - 1].position;
-                m_Preview.positionOut = shape[m_VertexSelection + 1].position;
-            }
-
-            /*
-            PreviewAction = PreviewMoveAction;
-            RealizeAction = RealizeMoveAction;
-            */
+            m_Handle?.Perform(e);
         }
 
         /////////////////////////////////////////////////////////////////
@@ -224,7 +145,6 @@ namespace TrimDecal.Editor
                         {
                             m_Data.shapeIndex = i;
                             m_Data.vertexIndex = j;
-                            m_Data.context = HandleContext.Vertex;
                             return;
                         }
 
@@ -244,63 +164,17 @@ namespace TrimDecal.Editor
                     {
                         m_Data.shapeIndex = i;
                         m_Data.vertexIndex = -1;
-                        m_Data.context = HandleContext.Shape;
                         return;
                     }
                 }
-
                 m_Data.shapeIndex = -1;
                 m_Data.vertexIndex = -1;
-                m_Data.context = HandleContext.None;
             }
-        }
-
-        /////////////////////////////////////////////////////////////////
-
-        private Vector3 SnapToGrid(Vector3 position)
-        {
-            Vector3 grid = EditorSnapSettings.move;
-            return new Vector3()
-            {
-                x = Mathf.Round(position.x / grid.x) * grid.x,
-                y = Mathf.Round(position.y / grid.y) * grid.y,
-                z = Mathf.Round(position.z / grid.z) * grid.z,
-            };
-        }
-
-        private bool RaycastPlane(Vector2 position, out Vector3 point)
-        {
-            Ray ray = HandleUtility.GUIPointToWorldRay(position);
-
-            if (m_Plane.Raycast(ray, out float distance))
-            {
-                point = ray.GetPoint(distance);
-
-                if (EditorSnapSettings.gridSnapEnabled)
-                {
-                    point = SnapToGrid(point);
-
-                }
-                return true;
-            }
-            point = default;
-            return false;
         }
 
         private Color GetSelectionColor(bool state)
         {
             return state ? Color.yellow : Color.gray;
-        }
-
-        /////////////////////////////////////////////////////////////////
-
-        private struct Preview
-        {
-            public bool isValid;
-            public int vertexIndex;
-            public Vector3 position;
-            public Vector3? positionIn;
-            public Vector3? positionOut;
         }
     }
 }
