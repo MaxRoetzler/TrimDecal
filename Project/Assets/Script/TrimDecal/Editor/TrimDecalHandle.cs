@@ -25,6 +25,7 @@ namespace TrimDecal.Editor
                 new HandleVertexDelete(m_Data, serializer),
                 new HandleVertexInsert(m_Data, serializer),
                 new HandleVertexMove(m_Data, serializer),
+                new HandleShapeCreate(m_Data, serializer),
             };
         }
 

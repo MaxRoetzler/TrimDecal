@@ -28,7 +28,11 @@ namespace TrimDecal.Editor
         public abstract bool CanEnter(Event e);
         public abstract void Preview(Event e);
         public abstract void Perform(Event e);
-        public abstract void Start(Event e);
+
+        public virtual void Start(Event e)
+        {
+            m_Data.Setup();
+        }
 
         /////////////////////////////////////////////////////////////////
         

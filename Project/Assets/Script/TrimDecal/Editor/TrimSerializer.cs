@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.UIElements;
 
 namespace TrimDecal.Editor
 {
@@ -11,7 +12,6 @@ namespace TrimDecal.Editor
         private SerializedProperty m_Vertex;
         private SerializedProperty m_Position;
         private SerializedProperty m_Normal;
-        private SerializedProperty m_GridSize;
         private SerializedProperty m_IsClosed;
         private SerializedProperty m_IsFlipped;
         private SerializedObject m_SerializedObject;
@@ -27,6 +27,30 @@ namespace TrimDecal.Editor
         }
 
         /////////////////////////////////////////////////////////////
+
+        public void CreateShape(Vector3 normal, Vector3 positionA, Vector3 positionB)
+        {
+            int index = m_Shapes.arraySize;
+            m_Shapes.InsertArrayElementAtIndex(index);
+            m_Shape = m_Shapes.GetArrayElementAtIndex(index);
+
+            // Unity copies last element's data, need to reset values
+            m_Shape.FindPropertyRelative(nameof(m_IsClosed)).boolValue = false;
+            m_Shape.FindPropertyRelative(nameof(m_IsFlipped)).boolValue = false;
+            m_Shape.FindPropertyRelative(nameof(m_Normal)).vector3Value = normal;
+
+            // Create two vertices
+            m_Vertices = m_Shape.FindPropertyRelative(nameof(m_Vertices));
+            m_Vertices.arraySize = 2;
+
+            m_Vertex = m_Vertices.GetArrayElementAtIndex(0);
+            m_Vertex.FindPropertyRelative(nameof(m_Position)).vector3Value = positionA;
+            m_Vertex = m_Vertices.GetArrayElementAtIndex(1);
+            m_Vertex.FindPropertyRelative(nameof(m_Position)).vector3Value = positionB;
+
+            // Serialize immediately
+            m_SerializedObject.ApplyModifiedProperties();
+        }
 
         public void SetShapeClosed(int shapeIndex, bool state)
         {

@@ -14,11 +14,6 @@ namespace TrimDecal.Editor
             return e.control && m_Data.vertexIndex > -1;
         }
 
-        public override void Start(Event e)
-        {
-            m_Data.Setup();
-        }
-
         public override void Preview(Event e)
         {
             TrimShape shape = m_Data.decal[m_Data.shapeIndex];
@@ -46,11 +41,12 @@ namespace TrimDecal.Editor
                     m_Serializer.RemoveShape(m_Data.shapeIndex);
                     m_Data.vertexIndex = -1;
                     m_Data.shapeIndex = -1;
-                    return;
                 }
-
-                m_Serializer.RemoveVertex(m_Data.shapeIndex, m_Data.vertexIndex);
-                m_Data.vertexIndex = -1;
+                else
+                {
+                    m_Serializer.RemoveVertex(m_Data.shapeIndex, m_Data.vertexIndex);
+                    m_Data.vertexIndex = -1;
+                }
 
                 NotifyHandleCompleted();
             }

@@ -14,11 +14,6 @@ namespace TrimDecal.Editor
             return m_Data.vertexIndex > -1 && e.shift;
         }
 
-        public override void Start(Event e)
-        {
-            m_Data.Setup();
-        }
-
         public override void Preview(Event e)
         {
             TrimShape shape = m_Data.decal[m_Data.shapeIndex];
@@ -46,7 +41,8 @@ namespace TrimDecal.Editor
         {
             if (e.type == EventType.MouseDrag)
             {
-                RaycastUtility.RaycastPlane(m_Data.plane, e.mousePosition, out m_Data.position);
+                RaycastUtility.RaycastPlane(m_Data.plane, e.mousePosition, out RaycastHit hit);
+                m_Data.position = hit.point;
             }
 
             if (e.type == EventType.MouseUp)

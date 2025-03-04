@@ -12,8 +12,6 @@ namespace TrimDecal
         [SerializeField]
         private Vector3 m_Normal = new(0f, 1f, 0f);
         [SerializeField]
-        private float m_GridSize = 1.0f;
-        [SerializeField]
         private bool m_IsFlipped = false;
         [SerializeField]
         private bool m_IsClosed = false;
@@ -33,11 +31,6 @@ namespace TrimDecal
         public float3 normal
         {
             get => m_Normal;
-        }
-
-        public float gridSize
-        {
-            get => m_GridSize;
         }
 
         public bool isClosed

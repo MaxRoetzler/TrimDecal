@@ -27,25 +27,33 @@ namespace TrimDecal.Editor
 
         public void Setup()
         {
-            TrimShape shape = decal[shapeIndex];
-            position = shape[vertexIndex].position;
-            plane.SetNormalAndPosition(shape.normal, position);
+            if (shapeIndex > -1)
+            {
+                TrimShape shape = decal[shapeIndex];
+                position = shape[vertexIndex].position;
+                plane.SetNormalAndPosition(shape.normal, position);
 
-            if (vertexIndex == 0)
-            {
-                positionPrev = shape.isClosed ? shape[shape.count - 1].position : null;
-                positionNext = shape[vertexIndex + 1].position;
+                if (vertexIndex == 0)
+                {
+                    positionPrev = shape.isClosed ? shape[shape.count - 1].position : null;
+                    positionNext = shape[vertexIndex + 1].position;
+                }
+                else if (vertexIndex == shape.count - 1)
+                {
+                    positionPrev = shape[vertexIndex - 1].position;
+                    positionNext = shape.isClosed ? shape[0].position : null;
+                }
+                else
+                {
+                    positionPrev = shape[vertexIndex - 1].position;
+                    positionNext = shape[vertexIndex + 1].position;
+                }
+                return;
             }
-            else if (vertexIndex == shape.count - 1)
-            {
-                positionPrev = shape[vertexIndex - 1].position;
-                positionNext = shape.isClosed ? shape[0].position : null;
-            }
-            else
-            {
-                positionPrev = shape[vertexIndex - 1].position;
-                positionNext = shape[vertexIndex + 1].position;
-            }
+
+            position = Vector3.zero;
+            positionPrev = null;
+            positionNext = null;
         }
 
         public bool IsClosedMesh()
