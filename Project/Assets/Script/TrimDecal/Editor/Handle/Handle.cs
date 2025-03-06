@@ -3,17 +3,17 @@ using System;
 
 namespace TrimDecal.Editor
 {
-    public abstract class HandleBase : IHandle
+    public abstract class Handle : IHandle
     {
         protected const float k_DottedLineSpace = 2.0f;
 
-        protected bool m_IsActive;
+        protected int m_ControlID;
         protected HandleData m_Data;
-        protected TrimSerializer m_Serializer;
+        protected TrimDecalSerializer m_Serializer;
 
         /////////////////////////////////////////////////////////////////
 
-        public HandleBase(HandleData data, TrimSerializer serializer)
+        public Handle(HandleData data, TrimDecalSerializer serializer)
         {
             m_Data = data;
             m_Serializer = serializer;
@@ -31,13 +31,17 @@ namespace TrimDecal.Editor
 
         public virtual void Start(Event e)
         {
+            m_ControlID = GUIUtility.GetControlID(FocusType.Passive);
+            GUIUtility.hotControl = m_ControlID;
+
             m_Data.Setup();
         }
 
         /////////////////////////////////////////////////////////////////
-        
+
         protected void NotifyHandleCompleted()
         {
+            GUIUtility.hotControl = 0;
             onCompleted();
         }
     }

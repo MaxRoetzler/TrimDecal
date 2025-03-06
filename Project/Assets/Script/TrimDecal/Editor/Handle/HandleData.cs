@@ -6,7 +6,6 @@ namespace TrimDecal.Editor
     {
         private const float k_VertexMergeDistance = 0.05f;
 
-        public int controlID;
         public TrimDecal decal;
         public int shapeIndex;
         public int vertexIndex;
@@ -27,33 +26,49 @@ namespace TrimDecal.Editor
 
         public void Setup()
         {
-            if (shapeIndex > -1)
+            if (vertexIndex == -1 || shapeIndex == -1)
             {
-                TrimShape shape = decal[shapeIndex];
-                position = shape[vertexIndex].position;
-                plane.SetNormalAndPosition(shape.normal, position);
-
-                if (vertexIndex == 0)
-                {
-                    positionPrev = shape.isClosed ? shape[shape.count - 1].position : null;
-                    positionNext = shape[vertexIndex + 1].position;
-                }
-                else if (vertexIndex == shape.count - 1)
-                {
-                    positionPrev = shape[vertexIndex - 1].position;
-                    positionNext = shape.isClosed ? shape[0].position : null;
-                }
-                else
-                {
-                    positionPrev = shape[vertexIndex - 1].position;
-                    positionNext = shape[vertexIndex + 1].position;
-                }
+                positionPrev = null;
+                positionNext = null;
                 return;
             }
 
-            position = Vector3.zero;
-            positionPrev = null;
-            positionNext = null;
+            TrimShape shape = decal[shapeIndex];
+            position = shape[vertexIndex].position;
+            plane.SetNormalAndPosition(shape.normal, position);
+
+            if (vertexIndex == 0)
+            {
+                positionPrev = shape.isClosed ? shape[shape.count - 1].position : null;
+                positionNext = shape[vertexIndex + 1].position;
+            }
+            else if (vertexIndex == shape.count - 1)
+            {
+                positionPrev = shape[vertexIndex - 1].position;
+                positionNext = shape.isClosed ? shape[0].position : null;
+            }
+            else
+            {
+                positionPrev = shape[vertexIndex - 1].position;
+                positionNext = shape[vertexIndex + 1].position;
+            }
+        }
+
+        public Vector3 GetAbsoluteCenter()
+        {
+            Vector3 center = Vector3.zero;
+
+            if (shapeIndex > -1)
+            {
+                TrimShape shape = decal[shapeIndex];
+
+                for (int i = 0; i < shape.count; i++)
+                {
+                    center += (Vector3)shape[i].position;
+                }
+                center /= shape.count;
+            }
+            return center;
         }
 
         public bool IsClosedMesh()

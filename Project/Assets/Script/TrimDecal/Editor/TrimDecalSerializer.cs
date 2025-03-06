@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace TrimDecal.Editor
 {
-    public class TrimSerializer
+    public class TrimDecalSerializer
     {
         private SerializedProperty m_Shapes;
         private SerializedProperty m_Shape;
@@ -20,7 +20,7 @@ namespace TrimDecal.Editor
 
         /////////////////////////////////////////////////////////////
 
-        public TrimSerializer(SerializedObject serializedObject)
+        public TrimDecalSerializer(SerializedObject serializedObject)
         {
             m_SerializedObject = serializedObject;
             m_Shapes = serializedObject.FindProperty(nameof(m_Shapes));
@@ -57,6 +57,14 @@ namespace TrimDecal.Editor
             m_Shape = m_Shapes.GetArrayElementAtIndex(shapeIndex);
             m_IsClosed = m_Shape.FindPropertyRelative(nameof(m_IsClosed));
             m_IsClosed.boolValue = state;
+
+            m_IsDirty = true;
+        }
+
+        public void SetShapeNormal(int shapeIndex, Vector3 normal)
+        {
+            m_Shape = m_Shapes.GetArrayElementAtIndex(shapeIndex);
+            m_Shape.FindPropertyRelative(nameof(m_Normal)).vector3Value = normal.normalized;
 
             m_IsDirty = true;
         }

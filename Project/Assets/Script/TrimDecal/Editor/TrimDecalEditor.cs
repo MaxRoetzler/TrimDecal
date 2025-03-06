@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.Overlays;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
 
@@ -13,11 +14,13 @@ namespace TrimDecal.Editor
 
         private TrimDecal m_Decal;
         private TrimDecalHandle m_Handle;
-        private TrimSerializer m_Context;
+        private TrimDecalSerializer m_Context;
 
         private ListView m_ShapeView;
         private SerializedProperty m_Shapes;
         private Transform m_Transform;
+
+        private Overlay m_Overlay;
 
         private const string k_ShapeViewName = "shapes";
 
@@ -51,7 +54,7 @@ namespace TrimDecal.Editor
             m_Decal = (TrimDecal)target;
             m_Transform = m_Decal.transform;
 
-            m_Context = new TrimSerializer(serializedObject);
+            m_Context = new TrimDecalSerializer(serializedObject);
             m_Handle = new TrimDecalHandle(m_Decal, m_Context);
         }
 
@@ -102,8 +105,26 @@ namespace TrimDecal.Editor
             Tools.hidden = false;
         }
 
+        private void OnEnable()
+        {
+            if (SceneView.lastActiveSceneView != null)
+            {
+                if (SceneView.lastActiveSceneView.TryGetOverlay("TrimDecalOverlay", out m_Overlay))
+                {
+                    TrimDecalOverlay overlay = (TrimDecalOverlay)m_Overlay;
+                    overlay.SetTarget((TrimDecal)target);
+                    overlay.displayed = true;
+                }
+            }
+        }
+
         private void OnDisable()
         {
+            if (m_Overlay != null)
+            {
+                m_Overlay.displayed = false;
+            }
+
             UnregisterEvents();
         }
     }

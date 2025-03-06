@@ -3,21 +3,21 @@ using UnityEngine;
 
 namespace TrimDecal.Editor
 {
-    public class HandleVertexMove : HandleBase
+    public class HandleVertexMove : Handle
     {
-        public HandleVertexMove(HandleData data, TrimSerializer serializer) : base(data, serializer) { }
+        public HandleVertexMove(HandleData data, TrimDecalSerializer serializer) : base(data, serializer) { }
 
         /////////////////////////////////////////////////////////////////
 
         public override bool CanEnter(Event e)
         {
-            return m_Data.vertexIndex > -1;
+            return e.type == EventType.MouseDown && m_Data.vertexIndex > -1;
         }
 
         public override void Preview(Event e)
         {
             Handles.color = Color.white;
-            Handles.DotHandleCap(-1, m_Data.position, Quaternion.identity, 0.02f, EventType.Repaint);
+            Handles.DotHandleCap(0, m_Data.position, Quaternion.identity, 0.02f, EventType.Repaint);
 
             if (m_Data.positionPrev != null)
             {
@@ -32,13 +32,16 @@ namespace TrimDecal.Editor
 
         public override void Perform(Event e)
         {
-            if (e.type == EventType.MouseDrag)
+            EventType eventType = e.GetTypeForControl(m_ControlID);
+
+            if (eventType == EventType.MouseDrag && GUIUtility.hotControl == m_ControlID)
             {
                 RaycastUtility.RaycastPlane(m_Data.plane, e.mousePosition, out RaycastHit hit);
                 m_Data.position = hit.point;
+                e.Use();
             }
 
-            if (e.type == EventType.MouseUp)
+            if (eventType == EventType.MouseUp && GUIUtility.hotControl == m_ControlID)
             {
                 if (m_Data.IsClosedMesh())
                 {
@@ -50,6 +53,7 @@ namespace TrimDecal.Editor
                     m_Serializer.SetVertexPosition(m_Data.shapeIndex, m_Data.vertexIndex, m_Data.position);
                 }
 
+                e.Use();
                 NotifyHandleCompleted();
             }
         }

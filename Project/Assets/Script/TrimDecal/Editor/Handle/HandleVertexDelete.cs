@@ -3,15 +3,15 @@ using UnityEngine;
 
 namespace TrimDecal.Editor
 {
-    public class HandleVertexDelete : HandleBase
+    public class HandleVertexDelete : Handle
     {
-        public HandleVertexDelete(HandleData data, TrimSerializer serializer) : base(data, serializer) { }
+        public HandleVertexDelete(HandleData data, TrimDecalSerializer serializer) : base(data, serializer) { }
 
         /////////////////////////////////////////////////////////////////
 
         public override bool CanEnter(Event e)
         {
-            return e.control && m_Data.vertexIndex > -1;
+            return e.type == EventType.MouseDown && e.control && m_Data.vertexIndex > -1;
         }
 
         public override void Preview(Event e)
@@ -32,7 +32,9 @@ namespace TrimDecal.Editor
 
         public override void Perform(Event e)
         {
-            if (e.type == EventType.MouseUp)
+            EventType eventType = e.GetTypeForControl(m_ControlID);
+
+            if (eventType == EventType.MouseUp && GUIUtility.hotControl == m_ControlID)
             {
                 TrimShape shape = m_Data.decal[m_Data.shapeIndex];
 
@@ -48,6 +50,7 @@ namespace TrimDecal.Editor
                     m_Data.vertexIndex = -1;
                 }
 
+                e.Use();
                 NotifyHandleCompleted();
             }
         }

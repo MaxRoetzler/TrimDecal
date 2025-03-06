@@ -3,15 +3,15 @@ using UnityEngine;
 
 namespace TrimDecal.Editor
 {
-    public class HandleVertexInsert : HandleBase
+    public class HandleVertexInsert : Handle
     {
-        public HandleVertexInsert(HandleData data, TrimSerializer serializer) : base(data, serializer) { }
+        public HandleVertexInsert(HandleData data, TrimDecalSerializer serializer) : base(data, serializer) { }
 
         /////////////////////////////////////////////////////////////////
 
         public override bool CanEnter(Event e)
         {
-            return m_Data.vertexIndex > -1 && e.shift;
+            return e.type == EventType.MouseDown && e.shift && m_Data.vertexIndex > -1;
         }
 
         public override void Preview(Event e)
@@ -39,35 +39,39 @@ namespace TrimDecal.Editor
 
         public override void Perform(Event e)
         {
-            if (e.type == EventType.MouseDrag)
+            EventType eventType = e.GetTypeForControl(m_ControlID);
+
+            if (eventType == EventType.MouseDrag && GUIUtility.hotControl == m_ControlID)
             {
                 RaycastUtility.RaycastPlane(m_Data.plane, e.mousePosition, out RaycastHit hit);
                 m_Data.position = hit.point;
+                e.Use();
             }
 
-            if (e.type == EventType.MouseUp)
+            if (eventType == EventType.MouseUp && GUIUtility.hotControl == m_ControlID)
             {
-                int index;
-                bool isInTangent = m_Data.IsPreviousPosition();
+                int vertexIndex;
+                bool isPrevious = m_Data.IsPreviousPosition();
                 TrimShape shape = m_Data.decal[m_Data.shapeIndex];
 
                 // Don't wrap index for last vertex
                 if (m_Data.vertexIndex == shape.count - 1)
                 {
-                    index = isInTangent ? m_Data.vertexIndex : shape.count;
+                    vertexIndex = isPrevious ? m_Data.vertexIndex : shape.count;
                 }
                 else
                 {
-                    index = isInTangent ? m_Data.vertexIndex : (m_Data.vertexIndex + 1) % shape.count;
+                    vertexIndex = isPrevious ? m_Data.vertexIndex : (m_Data.vertexIndex + 1) % shape.count;
                 }
 
-                m_Serializer.InsertVertex(m_Data.shapeIndex, index, m_Data.position);
+                m_Serializer.InsertVertex(m_Data.shapeIndex, vertexIndex, m_Data.position);
 
                 if (m_Data.IsClosedMesh())
                 {
                     m_Serializer.SetShapeClosed(m_Data.shapeIndex, true);
                 }
 
+                e.Use();
                 NotifyHandleCompleted();
             }
         }

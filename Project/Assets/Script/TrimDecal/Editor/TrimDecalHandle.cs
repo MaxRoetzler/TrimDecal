@@ -10,22 +10,23 @@ namespace TrimDecal.Editor
 
         private IHandle m_Handle;
         private IHandle[] m_Handles;
-        private MouseCursor m_Cursor;
         private HandleData m_Data;
         private TrimDecal m_Decal;
 
         /////////////////////////////////////////////////////////////////
 
-        public TrimDecalHandle(TrimDecal decal, TrimSerializer serializer)
+        public TrimDecalHandle(TrimDecal decal, TrimDecalSerializer serializer)
         {
             m_Decal = decal;
             m_Data = new(decal);
-            m_Handles = new HandleBase[]
+            m_Handles = new Handle[]
             {
                 new HandleVertexDelete(m_Data, serializer),
                 new HandleVertexInsert(m_Data, serializer),
                 new HandleVertexMove(m_Data, serializer),
                 new HandleShapeCreate(m_Data, serializer),
+                new HandleShapeOrient(m_Data, serializer),
+                new HandleShapeMove(m_Data, serializer),
             };
         }
 
@@ -39,9 +40,6 @@ namespace TrimDecal.Editor
             }
 
             Event e = Event.current;
-            int controlID = GUIUtility.GetControlID(FocusType.Passive);
-            HandleUtility.AddDefaultControl(controlID);
-            m_Data.controlID = controlID;
 
             if (e.type == EventType.Repaint)
             {
@@ -50,17 +48,10 @@ namespace TrimDecal.Editor
                 m_Handle?.Preview(e);
             }
 
-            // Skip layout update & viewport navigation
-            if (e.type == EventType.Layout || e.alt || e.button != 0)
-            {
-                return;
-            }
-
-            if (e.type == EventType.MouseDown)
+            if (m_Handle == null)
             {
                 GetHandleContext(e);
-
-                foreach (HandleBase handle in m_Handles)
+                foreach (Handle handle in m_Handles)
                 {
                     if (handle.CanEnter(e))
                     {
@@ -80,7 +71,6 @@ namespace TrimDecal.Editor
         private void DrawHandles(Event e)
         {
             int controlID = GUIUtility.GetControlID(FocusType.Passive);
-            HandleUtility.AddDefaultControl(controlID);
             Handles.zTest = CompareFunction.Always;
 
             for (int i = 0; i < m_Decal.count; i++)
@@ -114,63 +104,57 @@ namespace TrimDecal.Editor
 
         private void GetHandleContext(Event e)
         {
-            int controlID = GUIUtility.GetControlID(FocusType.Passive);
-            HandleUtility.AddDefaultControl(controlID);
+            float handleSize = 0.0f;
+            float mouseDistance = 0.0f;
+            float closestShapeDistance = float.MaxValue;
+            int closestShapeIndex = -1;
 
-            if (e.type == EventType.MouseDown)
+            for (int i = 0; i < m_Decal.count; i++)
             {
-                float handleSize = 0.0f;
-                float mouseDistance = 0.0f;
-                float closestShapeDistance = float.MaxValue;
-                int closestShapeIndex = -1;
-
-                for (int i = 0; i < m_Decal.count; i++)
+                if (m_Decal[i].count < 2)
                 {
-                    if (m_Decal[i].count < 2)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    TrimShape shape = m_Decal[i];
-                    int vertexCount = shape.count;
-                    int closedCount = vertexCount + (shape.isClosed ? 1 : 0);
+                TrimShape shape = m_Decal[i];
+                int vertexCount = shape.count;
+                int closedCount = vertexCount + (shape.isClosed ? 1 : 0);
 
-                    for (int j = 0; j < vertexCount; j++)
-                    {
-                        Vector3 position = shape[j].position;
-                        handleSize = HandleUtility.GetHandleSize(position) * 0.05f;
-                        mouseDistance = HandleUtility.DistanceToCircle(position, handleSize * 2.0f);
+                for (int j = 0; j < vertexCount; j++)
+                {
+                    Vector3 position = shape[j].position;
+                    handleSize = HandleUtility.GetHandleSize(position) * 0.05f;
+                    mouseDistance = HandleUtility.DistanceToCircle(position, handleSize * 2.0f);
 
-                        // Check for vertex click
-                        if (mouseDistance < handleSize * 2.0f)
-                        {
-                            m_Data.shapeIndex = i;
-                            m_Data.vertexIndex = j;
-                            return;
-                        }
-
-                        // Track closest clicked segment
-                        Vector3 positionA = shape[(j + 0) % vertexCount].position;
-                        Vector3 positionB = shape[(j + 1) % vertexCount].position;
-                        mouseDistance = HandleUtility.DistanceToLine(positionA, positionB);
-
-                        if (mouseDistance < closestShapeDistance)
-                        {
-                            closestShapeDistance = mouseDistance;
-                            closestShapeIndex = i;
-                        }
-                    }
-
-                    if (closestShapeDistance < k_ShapeSelectDistance)
+                    // Check for vertex click
+                    if (mouseDistance < handleSize * 2.0f)
                     {
                         m_Data.shapeIndex = i;
-                        m_Data.vertexIndex = -1;
+                        m_Data.vertexIndex = j;
                         return;
                     }
+
+                    // Track closest clicked segment
+                    Vector3 positionA = shape[(j + 0) % vertexCount].position;
+                    Vector3 positionB = shape[(j + 1) % vertexCount].position;
+                    mouseDistance = HandleUtility.DistanceToLine(positionA, positionB);
+
+                    if (mouseDistance < closestShapeDistance)
+                    {
+                        closestShapeDistance = mouseDistance;
+                        closestShapeIndex = i;
+                    }
                 }
-                m_Data.shapeIndex = -1;
-                m_Data.vertexIndex = -1;
+
+                if (closestShapeDistance < k_ShapeSelectDistance)
+                {
+                    m_Data.shapeIndex = i;
+                    m_Data.vertexIndex = -1;
+                    return;
+                }
             }
+            m_Data.shapeIndex = -1;
+            m_Data.vertexIndex = -1;
         }
 
         private Color GetSelectionColor(bool state)
