@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace TrimDecal
 {
-    public class TrimMeshContext : IDisposable
+    public class TrimMeshBuilder : IDisposable
     {
         private Mesh m_Mesh;
         private List<Vector2> m_UVs;
@@ -14,7 +14,7 @@ namespace TrimDecal
 
         /////////////////////////////////////////////////////////////////
 
-        public TrimMeshContext(Mesh mesh)
+        public TrimMeshBuilder(Mesh mesh)
         {
             m_Mesh = mesh;
 
