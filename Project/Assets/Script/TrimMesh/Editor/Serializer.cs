@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -14,6 +13,8 @@ namespace TrimMesh.Editor
 
         private const string k_NameOfPosition = "m_Position";
         private const string k_NameOfSegments = "m_Segments";
+        private const string k_NameOfVertexA = "m_VertexA";
+        private const string k_NameOfVertexB = "m_VertexB";
 
         /////////////////////////////////////////////////////////////
 
@@ -37,9 +38,8 @@ namespace TrimMesh.Editor
 
             SplineVertex vertexA = CreateVertex(positionA);
             SplineVertex vertexB = CreateVertex(positionB);
-            SplineSegment segment = new(vertexA, vertexB);
 
-            CreateSpline(segment);
+            CreateSpline(vertexA, vertexB);
             m_IsDirty = true;
         }
 
@@ -59,42 +59,68 @@ namespace TrimMesh.Editor
         /// Adds a new spline segment to the taraget spline, using the specified target vertex and position.
         /// </summary>
         /// <param name="splineIndex">The index of the spline to add the segment to.</param>
-        /// <param name="startVertex">The existing vertex to start new spline segment from.</param>
+        /// <param name="referenceVertex">The existing vertex to start new spline segment from.</param>
         /// <param name="position">The position of the new spline segment.</param>
-        public void AddSegment(int splineIndex, SplineVertex startVertex, Vector3 position)
+        public void AddSegment(int splineIndex, SplineVertex referenceVertex, Vector3 position)
         {
             SerializedProperty spline;
-            SerializedProperty element;
+            SerializedProperty segment;
             SerializedProperty segments;
 
-            SplineSegment segment;
-            SplineVertex vertex = CreateVertex(position);
+            SplineVertex vertexA;
+            SplineVertex vertexB;
+            SplineVertex newVertex = CreateVertex(position);
 
             spline = m_Splines.GetArrayElementAtIndex(splineIndex);
             segments = spline.FindPropertyRelative(k_NameOfSegments);
 
             for (int i = 0; i < segments.arraySize; i++)
             {
-                segment = segments.GetArrayElementAtIndex(i).managedReferenceValue as SplineSegment;
+                segment = segments.GetArrayElementAtIndex(i);
+                vertexA = segment.FindPropertyRelative(k_NameOfVertexA).managedReferenceValue as SplineVertex;
+                vertexB = segment.FindPropertyRelative(k_NameOfVertexB).managedReferenceValue as SplineVertex;
 
-                if (segment.vertexA == startVertex)
+                if (vertexA == referenceVertex)
                 {
-                    segments.InsertArrayElementAtIndex(i);
-                    element = segments.GetArrayElementAtIndex(i);
-                    element.managedReferenceValue = new SplineSegment(vertex, startVertex);
+                    InsertSegment(segments, i, newVertex, vertexA);
                     break;
                 }
 
-                if (segment.vertexB == startVertex)
+                if (vertexB == referenceVertex)
                 {
-                    segments.InsertArrayElementAtIndex(i + 1);
-                    element = segments.GetArrayElementAtIndex(i + 1);
-                    element.managedReferenceValue = new SplineSegment(startVertex, vertex);
+                    InsertSegment(segments, i + 1, vertexB, newVertex);
                     break;
                 }
             }
 
             m_IsDirty = true;
+        }
+
+        public void DeleteSegment(int splineIndex, int segmentIndex)
+        {
+            SerializedProperty spline;
+            SerializedProperty segment;
+            SerializedProperty segments;
+
+            spline = m_Splines.GetArrayElementAtIndex(splineIndex);
+            segments = spline.FindPropertyRelative(k_NameOfSegments);
+            segment = segments.GetArrayElementAtIndex(segmentIndex);
+
+            bool splitSpline = segmentIndex > 0 && segmentIndex < segments.arraySize - 1;
+
+            if (splitSpline)
+            {
+                // Create new spline
+            }
+
+            segments.DeleteArrayElementAtIndex(segmentIndex);
+            RemoveIsolatedVertices();
+            m_IsDirty = true;
+        }
+
+        public void Update()
+        {
+            m_SerializedObject.Update();
         }
 
         /// <summary>
@@ -124,7 +150,20 @@ namespace TrimMesh.Editor
             return vertex;
         }
 
-        private int CreateSpline(SplineSegment segment)
+        private void InsertSegment(SerializedProperty segments, int i, SplineVertex vertexA, SplineVertex vertexB)
+        {
+            SerializedProperty segment;
+
+            segments.InsertArrayElementAtIndex(i);
+            segment = segments.GetArrayElementAtIndex(i);
+
+            Debug.Log($"segments: {segments.arraySize}, segment: {segment}");
+
+            segment.FindPropertyRelative(k_NameOfVertexA).managedReferenceValue = vertexA;
+            segment.FindPropertyRelative(k_NameOfVertexB).managedReferenceValue = vertexB;
+        }
+
+        private void CreateSpline(SplineVertex vertexA, SplineVertex vertexB)
         {
             SerializedProperty spline;
             SerializedProperty segments;
@@ -134,17 +173,32 @@ namespace TrimMesh.Editor
             spline = m_Splines.GetArrayElementAtIndex(index);
 
             segments = spline.FindPropertyRelative(k_NameOfSegments);
-            segments.arraySize = 1;
-            segments.GetArrayElementAtIndex(0).managedReferenceValue = segment;
+            segments.arraySize = 0;
+            InsertSegment(segments, 0, vertexA, vertexB);
+        }
 
-            return index;
+        // TODO : In progress
+        private void CreateSpline(SerializedProperty newSegments)
+        {
+            SerializedProperty spline;
+            SerializedProperty segments;
+
+            int index = m_Splines.arraySize;
+            m_Splines.InsertArrayElementAtIndex(index);
+            spline = m_Splines.GetArrayElementAtIndex(index);
+
+            segments = spline.FindPropertyRelative(k_NameOfSegments);
+            segments.arraySize = newSegments.arraySize;
         }
 
         private void RemoveIsolatedVertices()
         {
             SerializedProperty spline;
-            SerializedProperty element;
+            SerializedProperty segment;
             SerializedProperty segments;
+
+            SplineVertex vertexA;
+            SplineVertex vertexB;
             HashSet<SplineVertex> vertices = new();
 
             // Collect all referenced vertices
@@ -155,20 +209,21 @@ namespace TrimMesh.Editor
 
                 for (int j = 0; j < segments.arraySize; j++)
                 {
-                    element = segments.GetArrayElementAtIndex(j);
-                    if (element.managedReferenceValue is SplineSegment segment)
-                    {
-                        vertices.Add(segment.vertexA);
-                        vertices.Add(segment.vertexB);
-                    }
+                    segment = segments.GetArrayElementAtIndex(j);
+
+                    vertexA = segment.FindPropertyRelative(k_NameOfVertexA).managedReferenceValue as SplineVertex;
+                    vertexB = segment.FindPropertyRelative(k_NameOfVertexB).managedReferenceValue as SplineVertex;
+
+                    vertices.Add(vertexA);
+                    vertices.Add(vertexB);
                 }
             }
 
             // Delete all unreferenced vertices
             for (int i = m_Vertices.arraySize - 1; i >= 0; i--)
             {
-                element = m_Vertices.GetArrayElementAtIndex(i);
-                if (element.managedReferenceValue is SplineVertex vertex && !vertices.Contains(vertex))
+                segment = m_Vertices.GetArrayElementAtIndex(i);
+                if (segment.managedReferenceValue is SplineVertex vertex && !vertices.Contains(vertex))
                 {
                     m_Vertices.DeleteArrayElementAtIndex(i);
                 }

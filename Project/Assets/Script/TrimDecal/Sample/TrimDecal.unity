@@ -151,11 +151,77 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23fbdb575913b3b4e9da39839266314c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Splines: []
-  m_Vertices: []
+  m_Splines:
+  - m_Segments:
+    - m_VertexA:
+        rid: 2732227165769695643
+      m_VertexB:
+        rid: 2732227165769695642
+    - m_VertexA:
+        rid: 2732227165769695642
+      m_VertexB:
+        rid: 2732227165769695640
+    - m_VertexA:
+        rid: 2732227165769695640
+      m_VertexB:
+        rid: 2732227165769695641
+  - m_Segments:
+    - m_VertexA:
+        rid: 2732227165769695647
+      m_VertexB:
+        rid: 2732227165769695644
+    - m_VertexA:
+        rid: 2732227165769695644
+      m_VertexB:
+        rid: 2732227165769695645
+    - m_VertexA:
+        rid: 2732227165769695645
+      m_VertexB:
+        rid: 2732227165769695646
+  m_Vertices:
+  - rid: 2732227165769695640
+  - rid: 2732227165769695641
+  - rid: 2732227165769695642
+  - rid: 2732227165769695643
+  - rid: 2732227165769695644
+  - rid: 2732227165769695645
+  - rid: 2732227165769695646
+  - rid: 2732227165769695647
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 2732227165769695640
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: -0.5301963, y: -0.17741942, z: -0.54082257}
+    - rid: 2732227165769695641
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: 0.41840237, y: 0.5540881, z: -0.35167858}
+    - rid: 2732227165769695642
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: 0.5257965, y: 0.05876346, z: 0.052619662}
+    - rid: 2732227165769695643
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: 0.0016859877, y: 0.5711678, z: 0.024853783}
+    - rid: 2732227165769695644
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: -0.87221795, y: 0.21798392, z: 0.32488835}
+    - rid: 2732227165769695645
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: -0.17874756, y: 0.2157139, z: -0.5177841}
+    - rid: 2732227165769695646
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: -0.09298431, y: -0.070457906, z: -0.13247678}
+    - rid: 2732227165769695647
+      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
+      data:
+        m_Position: {x: 0.14819086, y: 0.5984493, z: 0.5435294}
 --- !u!4 &890022423
 Transform:
   m_ObjectHideFlags: 0

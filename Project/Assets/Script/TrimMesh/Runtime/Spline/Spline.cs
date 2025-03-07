@@ -6,7 +6,7 @@ namespace TrimMesh
     [Serializable]
     public class Spline
     {
-        [SerializeReference]
+        [SerializeField]
         private SplineSegment[] m_Segments = new SplineSegment[0];
 
         /////////////////////////////////////////////////////////////

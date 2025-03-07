@@ -17,21 +17,26 @@ namespace TrimMesh.Editor
         {
             base.OnInspectorGUI();
 
+            m_Serializer.Update();
+
+            EditorGUILayout.BeginVertical("Box");
             if (GUILayout.Button("Add Spline"))
             {
                 m_Serializer.CreateSpline(Random.insideUnitSphere, Random.insideUnitSphere);
             }
-
+            EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
 
+            EditorGUILayout.BeginVertical("Box");
             m_DeleteSplineIndex = EditorGUILayout.IntField("Spline", m_DeleteSplineIndex);
             if (GUILayout.Button("Delete Spline"))
             {
                 m_Serializer.DeleteSpline(m_DeleteSplineIndex);
             }
-
+            EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
 
+            EditorGUILayout.BeginVertical("Box");
             EditorGUILayout.BeginHorizontal();
             m_AddSegmentSplineIndex = EditorGUILayout.IntField("Spline", m_AddSegmentSplineIndex);
             m_AddSegmentVertexIndex = EditorGUILayout.IntField("Vertex", m_AddSegmentVertexIndex);
@@ -40,6 +45,7 @@ namespace TrimMesh.Editor
             {
                 m_Serializer.AddSegment(m_AddSegmentSplineIndex, m_TrimMesh.vertices[m_AddSegmentVertexIndex], Random.insideUnitSphere);
             }
+            EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space();
 
