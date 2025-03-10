@@ -1,5 +1,10 @@
 using UnityEngine;
 using UnityEditor;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+using Random = UnityEngine.Random;
+using JetBrains.Annotations;
 
 namespace TrimMesh.Editor
 {
@@ -12,6 +17,10 @@ namespace TrimMesh.Editor
         private int m_DeleteSplineIndex;
         private int m_AddSegmentSplineIndex;
         private int m_AddSegmentVertexIndex;
+        private int m_DeleteSegmentSplineIndex;
+        private string m_DeleteSegmentIndices;
+        private string m_DeleteVertexIndices;
+        private string m_ConnectVertexIndices;
 
         public override void OnInspectorGUI()
         {
@@ -19,34 +28,76 @@ namespace TrimMesh.Editor
 
             m_Serializer.Update();
 
+            EditorGUILayout.LabelField("Create Spline", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical("Box");
-            if (GUILayout.Button("Add Spline"))
+            if (GUILayout.Button("Create"))
             {
                 m_Serializer.CreateSpline(Random.insideUnitSphere, Random.insideUnitSphere);
             }
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
 
+            EditorGUILayout.LabelField("Delete Spline", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical("Box");
             m_DeleteSplineIndex = EditorGUILayout.IntField("Spline", m_DeleteSplineIndex);
-            if (GUILayout.Button("Delete Spline"))
+            if (GUILayout.Button("Delete"))
             {
                 m_Serializer.DeleteSpline(m_DeleteSplineIndex);
             }
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
 
+            EditorGUILayout.LabelField("Append Segment", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical("Box");
             EditorGUILayout.BeginHorizontal();
             m_AddSegmentSplineIndex = EditorGUILayout.IntField("Spline", m_AddSegmentSplineIndex);
             m_AddSegmentVertexIndex = EditorGUILayout.IntField("Vertex", m_AddSegmentVertexIndex);
             EditorGUILayout.EndHorizontal();
-            if (GUILayout.Button("Add Segment"))
+            if (GUILayout.Button("Append"))
             {
-                m_Serializer.AddSegment(m_AddSegmentSplineIndex, m_TrimMesh.vertices[m_AddSegmentVertexIndex], Random.insideUnitSphere);
+                m_Serializer.AppendSegment(m_AddSegmentSplineIndex, m_TrimMesh.vertices[m_AddSegmentVertexIndex], Random.insideUnitSphere);
             }
             EditorGUILayout.EndVertical();
+            EditorGUILayout.Space();
 
+            EditorGUILayout.LabelField("Connect Vertices", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical("Box");
+            EditorGUILayout.BeginHorizontal();
+            m_ConnectVertexIndices = EditorGUILayout.TextField("Vertices", m_ConnectVertexIndices);
+            EditorGUILayout.EndHorizontal();
+            if (GUILayout.Button("Connect"))
+            {
+                int[] indices = m_ConnectVertexIndices.Split(',').Select(selector: Int32.Parse).ToArray();
+                m_Serializer.ConnectVertices(indices[0], indices[1]);
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space();
+
+            EditorGUILayout.LabelField("Delete Segments", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical("Box");
+            EditorGUILayout.BeginHorizontal();
+            m_DeleteSegmentSplineIndex = EditorGUILayout.IntField("Spline", m_DeleteSegmentSplineIndex);
+            m_DeleteSegmentIndices = EditorGUILayout.TextField("Segments", m_DeleteSegmentIndices);
+            EditorGUILayout.EndHorizontal();
+            if (GUILayout.Button("Delete"))
+            {
+                HashSet<int> indices = m_DeleteSegmentIndices.Split(',').Select(selector: Int32.Parse).ToHashSet();
+                m_Serializer.DeleteSegments(m_DeleteSegmentSplineIndex, indices);
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space();
+
+            EditorGUILayout.LabelField("Delete Vertices", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical("Box");
+            EditorGUILayout.BeginHorizontal();
+            m_DeleteVertexIndices = EditorGUILayout.TextField("Vertices", m_DeleteVertexIndices);
+            EditorGUILayout.EndHorizontal();
+            if (GUILayout.Button("Delete"))
+            {
+                HashSet<int> indices = m_DeleteVertexIndices.Split(',').Select(selector: Int32.Parse).ToHashSet();
+                m_Serializer.DeleteVertices(indices);
+            }
+            EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
 
             m_Serializer.ApplyModifiedProperties();
