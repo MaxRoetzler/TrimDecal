@@ -17,7 +17,6 @@ namespace TrimMesh.Editor
         private SplineModel m_Model;
         private TrimMesh m_TrimMesh;
         private TrimMeshOverlay m_Overlay;
-        private SelectionHandler m_Selection;
 
         // Fields for testing ...
         private Vector3 m_CreateSplinePositionA;
@@ -74,7 +73,7 @@ namespace TrimMesh.Editor
                 if (SceneView.lastActiveSceneView.TryGetOverlay("TrimMeshOverlay", out Overlay overlay))
                 {
                     m_Overlay = overlay as TrimMeshOverlay;
-                    m_Overlay.Setup(m_UxmlOverlay, m_Selection, m_TrimMesh, m_Model, m_View);
+                    m_Overlay.Setup(m_UxmlOverlay, m_TrimMesh, m_Model, m_View);
                 }
             }
         }
@@ -112,8 +111,7 @@ namespace TrimMesh.Editor
             TrimMesh trimMesh = (TrimMesh)target;
 
             m_Model = new(trimMesh);
-            m_Selection = new(m_Model);
-            m_View = new(m_Model, m_Selection, trimMesh.transform);
+            m_View = new(m_Model, trimMesh.transform);
 
             Undo.undoRedoPerformed += OnUndoRedo;
             SceneView.duringSceneGui += DuringSceneGUI;

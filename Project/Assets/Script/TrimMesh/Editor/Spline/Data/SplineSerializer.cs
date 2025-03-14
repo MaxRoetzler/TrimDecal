@@ -31,12 +31,13 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        public void Deserialize(List<Spline> splines, List<SplineVertex> vertices)
+        public void Deserialize(List<Spline> splines, List<SplineSegment> segments, List<SplineVertex> vertices)
         {
             m_SerializedObject.Update(); // Can get out of sync with Undo/Redo
 
             splines.Clear();
             vertices.Clear();
+            segments.Clear();
             Dictionary<int, SplineVertex> vertexLookup = new();
 
             // Load vertex data
@@ -55,25 +56,26 @@ namespace TrimMesh
                 Spline newSpline = new();
                 splines.Add(newSpline);
 
-                SerializedProperty spline = m_Splines.GetArrayElementAtIndex(i);
-                SerializedProperty segments = spline.FindPropertyRelative(k_NameOfSegments);
+                SerializedProperty propSpline = m_Splines.GetArrayElementAtIndex(i);
+                SerializedProperty propSegments = propSpline.FindPropertyRelative(k_NameOfSegments);
 
-                for (int j = 0; j < segments.arraySize; j++)
+                for (int j = 0; j < propSegments.arraySize; j++)
                 {
-                    SerializedProperty segment = segments.GetArrayElementAtIndex(j);
-                    int indexA = segment.FindPropertyRelative(k_NameOfVertexA).intValue;
-                    int indexB = segment.FindPropertyRelative(k_NameOfVertexB).intValue;
+                    SerializedProperty propSegment = propSegments.GetArrayElementAtIndex(j);
+                    int indexA = propSegment.FindPropertyRelative(k_NameOfVertexA).intValue;
+                    int indexB = propSegment.FindPropertyRelative(k_NameOfVertexB).intValue;
 
                     SplineVertex vertexA = vertexLookup[indexA];
                     SplineVertex vertexB = vertexLookup[indexB];
                     SplineSegment newSegment = new(vertexA, vertexB, newSpline);
 
+                    segments.Add(newSegment);
                     vertexA.segments.Add(newSegment);
                     vertexB.segments.Add(newSegment);
                     newSpline.segments.Add(newSegment);
                 }
             }
-            Debug.Log($"Deserialized, Vertices: {vertices.Count}, Splines: {splines.Count}");
+            Debug.Log($"Deserialized, Vertices: {vertices.Count}, Segments: {segments.Count} Splines: {splines.Count}");
         }
 
         public void Serialize(SplineModel splineModel)

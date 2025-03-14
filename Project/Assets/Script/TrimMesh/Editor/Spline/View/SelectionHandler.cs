@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
@@ -14,7 +15,6 @@ namespace TrimMesh.Editor
         private Vector3 m_SelectionEnd;
 
         private SplineModel m_Model;
-        private BitArray m_SplineMask;
         private BitArray m_VertexMask;
         private BitArray m_SegmentMask;
 
@@ -25,12 +25,13 @@ namespace TrimMesh.Editor
             m_Model = model;
             m_Mode = SelectMode.None;
 
-            m_VertexMask = new(m_Model.vertexCount);
-            m_SegmentMask = new(m_Model.vertexCount); // TODO : Fix! Use global segment list ..
-            m_SplineMask = new(m_Model.splineCount);
-
-            UpdateSelection = SelectVertices;
+            AllocateData();
+            UpdateSelectionMask = GetVertexSelection;
         }
+
+        /////////////////////////////////////////////////////////////
+
+        public enum SelectionType { Default, Additive, Subtractive }
 
         /////////////////////////////////////////////////////////////
 
@@ -49,15 +50,10 @@ namespace TrimMesh.Editor
             get => m_SegmentMask;
         }
 
-        public BitArray splineMask
-        {
-            get => m_SplineMask;
-        }
-
         /////////////////////////////////////////////////////////////
 
-        private delegate void MarqueeSelectionHandler();
-        private MarqueeSelectionHandler UpdateSelection;
+        private delegate void MarqueeSelectionHandler(SelectionType type);
+        private MarqueeSelectionHandler UpdateSelectionMask;
 
         public delegate void SelectModeChangedHandler(SelectMode mode);
         public SelectModeChangedHandler onModeChanged;
@@ -68,6 +64,8 @@ namespace TrimMesh.Editor
         {
             m_ControlId = GUIUtility.GetControlID(FocusType.Passive);
             EventType eventType = e.GetTypeForControl(m_ControlId);
+
+            DetectSelectionInput(e);
 
             if (eventType == EventType.Repaint)
             {
@@ -97,7 +95,7 @@ namespace TrimMesh.Editor
 
                     if (eventType == EventType.MouseUp)
                     {
-                        UpdateSelection();
+                        UpdateSelectionMask(GetSelectionType(e));
                         m_SelectionRect = Rect.zero;
 
                         GUIUtility.hotControl = 0;
@@ -107,52 +105,107 @@ namespace TrimMesh.Editor
             }
         }
 
-        public void Deselect()
+        public void AllocateData()
         {
             m_VertexMask = new(m_Model.vertexCount);
-            m_VertexMask = new(m_Model.vertexCount);
-            m_VertexMask = new(m_Model.vertexCount);
+            m_SegmentMask = new(m_Model.segmentCount);
         }
+
+        /////////////////////////////////////////////////////////////
 
         public void SetVertexMode()
         {
             m_Mode = SelectMode.Vertex;
-            m_VertexMask = new(m_Model.vertexCount);
+            Deselect();
+
+            UpdateSelectionMask = GetVertexSelection;
             onModeChanged(m_Mode);
         }
 
         public void SetSegmentMode()
         {
             m_Mode = SelectMode.Segment;
-            m_VertexMask = new(m_Model.vertexCount);
+            Deselect();
+
+            UpdateSelectionMask = GetSegmentSelection;
             onModeChanged(m_Mode);
         }
 
         public void SetSplineMode()
         {
             m_Mode = SelectMode.Spline;
-            m_VertexMask = new(m_Model.splineCount);
+            Deselect();
+
+            UpdateSelectionMask = GetSplineSelection;
             onModeChanged(m_Mode);
+        }
+
+        public void Deselect()
+        {
+            m_VertexMask.SetAll(false);
+            m_SegmentMask.SetAll(false);
         }
 
         /////////////////////////////////////////////////////////////
 
-        private void SelectVertices()
+        private void GetVertexSelection(SelectionType type)
         {
             for (int i = 0; i < m_Model.vertexCount; i++)
             {
-                m_VertexMask[i] = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(m_Model.vertices[i].position));
+                bool isSelected = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(m_Model.vertices[i].position));
+
+                switch (type)
+                {
+                    case SelectionType.Default: m_VertexMask[i] = isSelected; break;
+                    case SelectionType.Additive: m_VertexMask[i] |= isSelected; break;
+                    case SelectionType.Subtractive: m_VertexMask[i] &= !isSelected; break;
+                }
             }
         }
 
-        private void SelectSegments()
+        private void GetSegmentSelection(SelectionType type)
         {
-            // ...
+            for (int i = 0; i < m_Model.segmentCount; i++)
+            {
+                float3 position = (m_Model.segments[i].vertexA.position + m_Model.segments[i].vertexB.position) * 0.5f;
+                bool isSelected = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(position));
+
+                switch (type)
+                {
+                    case SelectionType.Default: m_SegmentMask[i] = isSelected; break;
+                    case SelectionType.Additive: m_SegmentMask[i] |= isSelected; break;
+                    case SelectionType.Subtractive: m_SegmentMask[i] &= !isSelected; break;
+                }
+            }
         }
 
-        private void SelectSplines()
+        private void GetSplineSelection(SelectionType type)
         {
-            // ...
+            HashSet<Spline> selectedSplines = new();
+
+            for (int i = 0; i < m_Model.segmentCount; i++)
+            {
+                float3 position = (m_Model.segments[i].vertexA.position + m_Model.segments[i].vertexB.position) * 0.5f;
+                bool isSelected = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(position));
+
+                if (isSelected)
+                {
+                    selectedSplines.Add(m_Model.segments[i].spline);
+                }
+            }
+
+            for (int i = 0; i < m_Model.segmentCount; i++)
+            {
+                SplineSegment segment = m_Model.segments[i];
+                bool isSelected = selectedSplines.Contains(segment.spline);
+
+                switch (type)
+                {
+                    case SelectionType.Default: m_SegmentMask[i] = isSelected; break;
+                    case SelectionType.Additive: m_SegmentMask[i] |= isSelected; break;
+                    case SelectionType.Subtractive: m_SegmentMask[i] &= !isSelected; break;
+                }
+            }
         }
 
         private void UpdateSelectionRect()
@@ -161,6 +214,24 @@ namespace TrimMesh.Editor
             m_SelectionRect.xMax = math.max(m_SelectionStart.x, m_SelectionEnd.x);
             m_SelectionRect.yMin = math.min(m_SelectionStart.y, m_SelectionEnd.y);
             m_SelectionRect.yMax = math.max(m_SelectionStart.y, m_SelectionEnd.y);
+        }
+
+        private void DetectSelectionInput(Event e)
+        {
+            if (e.type == EventType.KeyDown)
+            {
+                switch (e.keyCode)
+                {
+                    case KeyCode.Alpha1: SetVertexMode(); e.Use(); break;
+                    case KeyCode.Alpha2: SetSegmentMode(); e.Use(); break;
+                    case KeyCode.Alpha3: SetSplineMode(); e.Use(); break;
+                }
+            }
+        }
+
+        private SelectionType GetSelectionType(Event e)
+        {
+            return e.control ? SelectionType.Subtractive : e.shift ? SelectionType.Additive : SelectionType.Default;
         }
     }
 }

@@ -11,7 +11,6 @@ namespace TrimMesh.Editor
         private SplineModel m_Model;
         private TrimMesh m_TrimMesh;
         private VisualTreeAsset m_Uxml;
-        private SelectionHandler m_Selection;
 
         private Button m_ButtonModeVertex;
         private Button m_ButtonModeSegment;
@@ -31,13 +30,12 @@ namespace TrimMesh.Editor
 
         /////////////////////////////////////////////////////////////
 
-        public void Setup(VisualTreeAsset uxml, SelectionHandler selector, TrimMesh trimMesh, SplineModel model, SplineView view)
+        public void Setup(VisualTreeAsset uxml, TrimMesh trimMesh, SplineModel model, SplineView view)
         {
             m_Uxml = uxml;
             m_View = view;
             m_Model = model;
             m_TrimMesh = trimMesh;
-            m_Selection = selector;
         }
 
         public override void OnWillBeDestroyed()
@@ -64,21 +62,21 @@ namespace TrimMesh.Editor
 
         private void RegisterEvents()
         {
-            m_Selection.onModeChanged += OnSelectionModeChanged;
+            m_View.selection.onModeChanged += OnSelectionModeChanged;
 
-            m_ButtonModeVertex.clicked += m_Selection.SetVertexMode;
-            m_ButtonModeSegment.clicked += m_Selection.SetSegmentMode;
-            m_ButtonModeSpline.clicked += m_Selection.SetSplineMode;
+            m_ButtonModeVertex.clicked += m_View.selection.SetVertexMode;
+            m_ButtonModeSegment.clicked += m_View.selection.SetSegmentMode;
+            m_ButtonModeSpline.clicked += m_View.selection.SetSplineMode;
         }
 
         private void UnregisterEvents()
         {
-            if (m_Selection != null)
+            if (m_View != null)
             {
-                m_Selection.onModeChanged -= OnSelectionModeChanged;
-                m_ButtonModeVertex.clicked -= m_Selection.SetVertexMode;
-                m_ButtonModeSegment.clicked -= m_Selection.SetSegmentMode;
-                m_ButtonModeSpline.clicked -= m_Selection.SetSplineMode;
+                m_View.selection.onModeChanged -= OnSelectionModeChanged;
+                m_ButtonModeVertex.clicked -= m_View.selection.SetVertexMode;
+                m_ButtonModeSegment.clicked -= m_View.selection.SetSegmentMode;
+                m_ButtonModeSpline.clicked -= m_View.selection.SetSplineMode;
             }
         }
     }

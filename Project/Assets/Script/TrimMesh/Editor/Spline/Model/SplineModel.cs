@@ -1,4 +1,3 @@
-using UnityEngine;
 using Unity.Mathematics;
 using System.Collections.Generic;
 
@@ -10,27 +9,24 @@ namespace TrimMesh
 
         private List<Spline> m_Splines;
         private List<SplineVertex> m_Vertices;
+        private List<SplineSegment> m_Segments;
         private SplineSerializer m_Serializer;
 
         public SplineModel(TrimMesh trimMesh)
         {
             m_Splines = new();
             m_Vertices = new();
+            m_Segments = new();
             m_Serializer = new(trimMesh);
-            m_Serializer.Deserialize(m_Splines, m_Vertices);
+            m_Serializer.Deserialize(m_Splines, m_Segments, m_Vertices);
         }
 
         /////////////////////////////////////////////////////////////
 
-        public List<SplineVertex> vertices
-        {
-            get => m_Vertices;
-        }
+        public delegate void ModelChangedHandler();
+        public ModelChangedHandler onDataChanged;
 
-        public int vertexCount
-        {
-            get => m_Vertices.Count;
-        }
+        /////////////////////////////////////////////////////////////
 
         public List<Spline> splines
         {
@@ -42,11 +38,32 @@ namespace TrimMesh
             get => m_Splines.Count;
         }
 
+        public List<SplineSegment> segments
+        {
+            get => m_Segments;
+        }
+
+        public int segmentCount
+        {
+            get => m_Segments.Count;
+        }
+
+        public List<SplineVertex> vertices
+        {
+            get => m_Vertices;
+        }
+
+        public int vertexCount
+        {
+            get => m_Vertices.Count;
+        }
+
         /////////////////////////////////////////////////////////////
 
         public void Update()
         {
-            m_Serializer.Deserialize(m_Splines, m_Vertices);
+            m_Serializer.Deserialize(m_Splines, m_Segments, m_Vertices);
+            onDataChanged();
         }
 
         public void CreateSpline(float3 positionA, float3 positionB)
@@ -60,6 +77,7 @@ namespace TrimMesh
             vertexA.segments.Add(segment);
             vertexB.segments.Add(segment);
 
+            m_Segments.Add(segment);
             m_Vertices.Add(vertexA);
             m_Vertices.Add(vertexB);
             m_Splines.Add(spline);
@@ -75,6 +93,7 @@ namespace TrimMesh
             {
                 m_Vertices.Remove(segment.vertexA);
                 m_Vertices.Remove(segment.vertexB);
+                m_Segments.Add(segment);
             }
 
             m_Splines.RemoveAt(index);
@@ -92,6 +111,7 @@ namespace TrimMesh
             vertexB.segments.Add(segment);
 
             m_Vertices.Add(vertexB);
+            m_Segments.Add(segment);
 
             m_Serializer.Serialize(this);
         }
@@ -110,69 +130,6 @@ namespace TrimMesh
             }
 
             isolatedVertices.ForEach(x => m_Vertices.Remove(x));
-        }
-
-        public void LogData()
-        {
-            Debug.Log("===== Debug Validation of Intermediate Model =====");
-
-            // Iterate through all splines
-            foreach (var spline in m_Splines)
-            {
-                Debug.Log($"Spline: {spline}");
-
-                // Iterate through each segment in the spline
-                foreach (var segment in spline.segments)
-                {
-                    Debug.Log($"  Segment: {segment}");
-
-                    // Debug the vertices of the segment
-                    Debug.Log($"    Vertex A: {segment.vertexA.position}");
-                    Debug.Log($"    Vertex B: {segment.vertexB.position}");
-
-                    // Check if the vertices are properly assigned
-                    if (segment.vertexA == null || segment.vertexB == null)
-                    {
-                        Debug.LogError($"ERROR: Segment has null vertex! Segment: {segment}");
-                    }
-                }
-
-                // Check if any segments are missing from the spline (e.g., if they're not being added properly)
-                if (spline.segments.Count == 0)
-                {
-                    Debug.LogWarning($"WARNING: Spline {spline} has no segments.");
-                }
-            }
-
-            // Iterate through all vertices to check their segment relationships
-            foreach (var vertex in m_Vertices)
-            {
-                Debug.Log($"Vertex: {vertex.position}");
-
-                // Check if the vertex has any segments assigned
-                if (vertex.segments.Count == 0)
-                {
-                    Debug.LogWarning($"WARNING: Vertex {vertex.position} has no segments.");
-                }
-
-                // Check for null relationships in the segments
-                foreach (var segment in vertex.segments)
-                {
-                    if (segment.vertexA == null || segment.vertexB == null)
-                    {
-                        Debug.LogError($"ERROR: Vertex {vertex.position} has a segment with null vertices.");
-                    }
-
-                    // Check if the vertex is part of the segment correctly
-                    if (segment.vertexA != vertex && segment.vertexB != vertex)
-                    {
-                        Debug.LogError($"ERROR: Vertex {vertex.position} is not part of the segment {segment}. Segment: {segment}");
-                    }
-                }
-            }
-
-            // Print summary
-            Debug.Log("===== End of Debug Validation =====");
         }
     }
 }
