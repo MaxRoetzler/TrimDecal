@@ -4,22 +4,22 @@ using UnityEngine.Rendering;
 
 namespace TrimMesh.Editor
 {
-    public class SplineHandle
+    public class SplineView
     {
-        private TrimMesh m_TrimMesh;
+        private SplineModel m_Model;
         private Matrix4x4 m_Matrix;
 
         /////////////////////////////////////////////////////////////
         
-        public SplineHandle(TrimMesh trimMesh)
+        public SplineView(SplineModel model, Transform transform)
         {
-            m_TrimMesh = trimMesh;
-            m_Matrix = trimMesh.transform.localToWorldMatrix;
+            m_Model = model;
+            m_Matrix = transform.localToWorldMatrix;
         }
 
         /////////////////////////////////////////////////////////////
         
-        public void Draw()
+        public void Update()
         {
             Handles.matrix = m_Matrix;
             Handles.zTest = CompareFunction.Always;
@@ -34,7 +34,7 @@ namespace TrimMesh.Editor
         {
             Handles.color = Color.yellow;
 
-            foreach(Spline spline in m_TrimMesh.splines)
+            foreach(Spline spline in m_Model.splines)
             {
                 foreach(SplineSegment segment in spline.segments)
                 {
@@ -50,19 +50,19 @@ namespace TrimMesh.Editor
         {
             Handles.color = Color.gray;
 
-            for (int i = 0; i < m_TrimMesh.vertexCount; i++)
+            for (int i = 0; i < m_Model.vertexCount; i++)
             {
-                SplineVertex vertex = m_TrimMesh.vertices[i];
+                SplineVertex vertex = m_Model.vertices[i];
 
                 Handles.DotHandleCap(0, vertex.position, Quaternion.identity, 0.02f, EventType.Repaint);
                 Handles.Label(vertex.position, $"{i}");
             }
 
-            for (int i = 0; i < m_TrimMesh.splineCount; i++)
+            for (int i = 0; i < m_Model.splineCount; i++)
             {
-                Spline spline = m_TrimMesh.splines[i];
+                Spline spline = m_Model.splines[i];
 
-                for (int j = 0; j < spline.segments.Length; j++)
+                for (int j = 0; j < spline.segmentCount; j++)
                 {
                     SplineSegment segment = spline.segments[j];
                     Vector3 center = (segment.vertexA.position + segment.vertexB.position) / 2.0f;

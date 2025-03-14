@@ -122,122 +122,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &890022421
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 890022423}
-  - component: {fileID: 890022422}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &890022422
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 890022421}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 23fbdb575913b3b4e9da39839266314c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Splines:
-  - m_Segments:
-    - m_VertexA:
-        rid: 2732227165769695643
-      m_VertexB:
-        rid: 2732227165769695642
-    - m_VertexA:
-        rid: 2732227165769695642
-      m_VertexB:
-        rid: 2732227165769695640
-    - m_VertexA:
-        rid: 2732227165769695640
-      m_VertexB:
-        rid: 2732227165769695641
-  - m_Segments:
-    - m_VertexA:
-        rid: 2732227165769695647
-      m_VertexB:
-        rid: 2732227165769695644
-    - m_VertexA:
-        rid: 2732227165769695644
-      m_VertexB:
-        rid: 2732227165769695645
-    - m_VertexA:
-        rid: 2732227165769695645
-      m_VertexB:
-        rid: 2732227165769695646
-  m_Vertices:
-  - rid: 2732227165769695640
-  - rid: 2732227165769695641
-  - rid: 2732227165769695642
-  - rid: 2732227165769695643
-  - rid: 2732227165769695644
-  - rid: 2732227165769695645
-  - rid: 2732227165769695646
-  - rid: 2732227165769695647
-  references:
-    version: 2
-    RefIds:
-    - rid: 2732227165769695640
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: -0.5301963, y: -0.17741942, z: -0.54082257}
-    - rid: 2732227165769695641
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: 0.41840237, y: 0.5540881, z: -0.35167858}
-    - rid: 2732227165769695642
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: 0.5257965, y: 0.05876346, z: 0.052619662}
-    - rid: 2732227165769695643
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: 0.0016859877, y: 0.5711678, z: 0.024853783}
-    - rid: 2732227165769695644
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: -0.87221795, y: 0.21798392, z: 0.32488835}
-    - rid: 2732227165769695645
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: -0.17874756, y: 0.2157139, z: -0.5177841}
-    - rid: 2732227165769695646
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: -0.09298431, y: -0.070457906, z: -0.13247678}
-    - rid: 2732227165769695647
-      type: {class: SplineVertex, ns: TrimMesh, asm: TrimMesh}
-      data:
-        m_Position: {x: 0.14819086, y: 0.5984493, z: 0.5435294}
---- !u!4 &890022423
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 890022421}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!43 &1769386079
+--- !u!43 &535526022
 Mesh:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -402,6 +287,53 @@ Mesh:
     offset: 0
     size: 0
     path: 
+--- !u!1 &890022421
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 890022423}
+  - component: {fileID: 890022424}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &890022423
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 890022421}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &890022424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 890022421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23fbdb575913b3b4e9da39839266314c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Container:
+    m_Vertices: []
+    m_Splines: []
 --- !u!1 &1834952544
 GameObject:
   m_ObjectHideFlags: 0
@@ -492,7 +424,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1834952544}
-  m_Mesh: {fileID: 1769386079}
+  m_Mesh: {fileID: 535526022}
 --- !u!4 &1834952548
 Transform:
   m_ObjectHideFlags: 0

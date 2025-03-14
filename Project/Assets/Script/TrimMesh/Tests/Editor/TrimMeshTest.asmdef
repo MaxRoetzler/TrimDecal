@@ -1,9 +1,11 @@
 {
-    "name": "TrimMeshEditorTest",
-    "rootNamespace": "TrimMesh.Editor.Test",
+    "name": "TrimMeshTest",
+    "rootNamespace": "TrimMesh.Test",
     "references": [
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "TrimMesh",
+        "TrimMesh.Editor",
+        "UnityEditor.TestRunner",
+        "UnityEngine.TestRunner"
     ],
     "includePlatforms": [
         "Editor"
