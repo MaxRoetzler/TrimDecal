@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <ui:VisualElement name="selection_mode" style="flex-direction: row;">
+        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="mode_vertex" style="background-image: url(&quot;project://database/Assets/Script/TrimMesh/Editor/Icon/Icon_Vertex.png?fileID=2800000&amp;guid=5d0f207d8444f40468b08265738374e4&amp;type=3#Icon_Vertex&quot;); width: 18px; height: 18px;" />
+        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="mode_segment" style="background-image: url(&quot;project://database/Assets/Script/TrimMesh/Editor/Icon/Icon_Segment.png?fileID=2800000&amp;guid=055fcf1bc24fe1f49a825dde0f71bc4a&amp;type=3#Icon_Segment&quot;); width: 18px; height: 18px;" />
+        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="mode_spline" style="background-image: url(&quot;project://database/Assets/Script/TrimMesh/Editor/Icon/Icon_Spline.png?fileID=2800000&amp;guid=1bd99095a33064f47916013ad7d99862&amp;type=3#Icon_Spline&quot;); width: 18px; height: 18px;" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -81,21 +81,22 @@ namespace TrimMesh
             m_Serializer.Serialize(this);
         }
 
-        /////////////////////////////////////////////////////////////
-
-        private bool FindOrCreateVertex(float3 position, out SplineVertex vertex)
+        public void ExtendSpline(int splineIndex, int vertexIndex, float3 position)
         {
-            foreach (SplineVertex current in m_Vertices)
-            {
-                if (math.distancesq(position, current.position) > k_MergeVertexThreshold)
-                {
-                    vertex = current;
-                    return true;
-                }
-            }
-            vertex = new SplineVertex(position);
-            return false;
+            Spline spline = m_Splines[splineIndex];
+            SplineVertex vertexA = m_Vertices[vertexIndex];
+            SplineVertex vertexB = new(position);
+            SplineSegment segment = new(vertexA, vertexB, spline);
+
+            spline.segments.Add(segment);
+            vertexB.segments.Add(segment);
+
+            m_Vertices.Add(vertexB);
+
+            m_Serializer.Serialize(this);
         }
+
+        /////////////////////////////////////////////////////////////
 
         private void RemoveIsolatedVertices()
         {

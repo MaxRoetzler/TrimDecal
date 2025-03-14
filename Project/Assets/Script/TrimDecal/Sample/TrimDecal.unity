@@ -332,8 +332,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Container:
-    m_Vertices: []
-    m_Splines: []
+    m_Vertices:
+    - {x: 0, y: 0, z: 0}
+    - {x: 1, y: 0, z: 0}
+    - {x: 1, y: 0, z: 1}
+    - {x: 0, y: 0, z: 1}
+    m_Splines:
+    - m_Segments:
+      - m_VertexA: 0
+        m_VertexB: 1
+      - m_VertexA: 1
+        m_VertexB: 2
+      - m_VertexA: 2
+        m_VertexB: 3
 --- !u!1 &1834952544
 GameObject:
   m_ObjectHideFlags: 0

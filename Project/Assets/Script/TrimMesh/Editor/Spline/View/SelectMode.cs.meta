@@ -1,10 +1,9 @@
 fileFormatVersion: 2
-guid: 1a6a62b8839c61242a537f4bf153ca3a
+guid: a0b76c6ba1fa0044e817fb95eae29641
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences:
-  - m_UxmlOverlay: {fileID: 9197481963319205126, guid: bba655f5c5460684b9f6d342b05f79e2, type: 3}
+  defaultReferences: []
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
