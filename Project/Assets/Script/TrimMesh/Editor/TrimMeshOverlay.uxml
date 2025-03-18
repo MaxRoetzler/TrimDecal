@@ -4,4 +4,27 @@
         <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="mode_segment" style="background-image: url(&quot;project://database/Assets/Script/TrimMesh/Editor/Icon/Icon_Segment.png?fileID=2800000&amp;guid=055fcf1bc24fe1f49a825dde0f71bc4a&amp;type=3#Icon_Segment&quot;); width: 18px; height: 18px;" />
         <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="mode_spline" style="background-image: url(&quot;project://database/Assets/Script/TrimMesh/Editor/Icon/Icon_Spline.png?fileID=2800000&amp;guid=1bd99095a33064f47916013ad7d99862&amp;type=3#Icon_Spline&quot;); width: 18px; height: 18px;" />
     </ui:VisualElement>
+    <ui:VisualElement name="operator_mode" style="flex-direction: row;">
+        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="operator_move" text="M" style="width: 18px; height: 18px;" />
+        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="operator_create" text="C" style="width: 18px; height: 18px;" />
+        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="operator_delete" text="D" style="width: 18px; height: 18px;" />
+    </ui:VisualElement>
+    <ui:Foldout text="Foldout" name="shortcuts">
+        <ui:VisualElement name="shortcut_create" style="flex-direction: row; justify-content: space-between; margin-left: 20px; margin-right: 20px;">
+            <ui:Label tabindex="-1" text="Create" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+            <ui:Label tabindex="-1" text="[C]" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+        </ui:VisualElement>
+        <ui:VisualElement name="shortcut_connect" style="flex-direction: row; justify-content: space-between; margin-left: 20px; margin-right: 20px;">
+            <ui:Label tabindex="-1" text="Connect" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+            <ui:Label tabindex="-1" text="[Ctrl] + [C]" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+        </ui:VisualElement>
+        <ui:VisualElement name="shortcut_delete" style="flex-direction: row; justify-content: space-between; margin-right: 20px; margin-left: 20px;">
+            <ui:Label tabindex="-1" text="Delete" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+            <ui:Label tabindex="-1" text="[Delete]" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+        </ui:VisualElement>
+        <ui:VisualElement name="shortcut_dissolve" style="flex-direction: row; justify-content: space-between; margin-right: 20px; margin-left: 20px;">
+            <ui:Label tabindex="-1" text="Dissolve" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+            <ui:Label tabindex="-1" text="[Backspace]" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+        </ui:VisualElement>
+    </ui:Foldout>
 </ui:UXML>

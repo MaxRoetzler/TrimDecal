@@ -8,7 +8,7 @@ namespace TrimMesh.Editor
     {
         private Matrix4x4 m_Matrix;
         private SplineModel m_Model;
-        private SelectionHandler m_Selection;
+        private SplineSelection m_Selection;
 
         /////////////////////////////////////////////////////////////
 
@@ -25,12 +25,7 @@ namespace TrimMesh.Editor
 
         /////////////////////////////////////////////////////////////
 
-        private delegate void InteractionHandler();
-        private InteractionHandler HandleInteraction;
-
-        /////////////////////////////////////////////////////////////
-
-        public SelectionHandler selection
+        public SplineSelection selection
         {
             get => m_Selection;
         }

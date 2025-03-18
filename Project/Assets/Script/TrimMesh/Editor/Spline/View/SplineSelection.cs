@@ -1,18 +1,25 @@
-using System.Collections;
 using System.Collections.Generic;
+using System.Collections;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 
 namespace TrimMesh.Editor
 {
-    public class SelectionHandler
+    // TODO : Add Double Click On Element to Select All
+
+    public class SplineSelection
     {
+        private const float k_VertexSelectionDistance = 0.12f;
+        private const float k_SegmentSelectionDistance = 20.0f;
+        private const float k_MarqueeSelectionThreshold = 1.0f;
+
         private int m_ControlId;
+        private int m_SelectionCount;
         private SelectMode m_Mode;
         private Rect m_SelectionRect;
-        private Vector3 m_SelectionStart;
         private Vector3 m_SelectionEnd;
+        private Vector3 m_SelectionStart;
 
         private SplineModel m_Model;
         private BitArray m_VertexMask;
@@ -20,13 +27,14 @@ namespace TrimMesh.Editor
 
         /////////////////////////////////////////////////////////////
 
-        public SelectionHandler(SplineModel model)
+        public SplineSelection(SplineModel model)
         {
             m_Model = model;
             m_Mode = SelectMode.None;
 
             AllocateData();
-            UpdateSelectionMask = GetVertexSelection;
+
+            GetSelectionMask = GetVertexSelection;
         }
 
         /////////////////////////////////////////////////////////////
@@ -50,10 +58,16 @@ namespace TrimMesh.Editor
             get => m_SegmentMask;
         }
 
+        public int selectionCount
+        {
+            get => m_SelectionCount;
+        }
+
         /////////////////////////////////////////////////////////////
 
-        private delegate void MarqueeSelectionHandler(SelectionType type);
-        private MarqueeSelectionHandler UpdateSelectionMask;
+        private delegate bool SelectionHandler(int index);
+        private delegate void SelectionChangedHandler(SelectionType type, bool selectNearest);
+        private SelectionChangedHandler GetSelectionMask;
 
         public delegate void SelectModeChangedHandler(SelectMode mode);
         public SelectModeChangedHandler onModeChanged;
@@ -95,9 +109,8 @@ namespace TrimMesh.Editor
 
                     if (eventType == EventType.MouseUp)
                     {
-                        UpdateSelectionMask(GetSelectionType(e));
+                        GetSelectionMask(GetSelectionType(e), GetSelectionMode());
                         m_SelectionRect = Rect.zero;
-
                         GUIUtility.hotControl = 0;
                         e.Use();
                     }
@@ -118,7 +131,7 @@ namespace TrimMesh.Editor
             m_Mode = SelectMode.Vertex;
             Deselect();
 
-            UpdateSelectionMask = GetVertexSelection;
+            GetSelectionMask = GetVertexSelection;
             onModeChanged(m_Mode);
         }
 
@@ -127,7 +140,7 @@ namespace TrimMesh.Editor
             m_Mode = SelectMode.Segment;
             Deselect();
 
-            UpdateSelectionMask = GetSegmentSelection;
+            GetSelectionMask = GetSegmentSelection;
             onModeChanged(m_Mode);
         }
 
@@ -136,7 +149,7 @@ namespace TrimMesh.Editor
             m_Mode = SelectMode.Spline;
             Deselect();
 
-            UpdateSelectionMask = GetSplineSelection;
+            GetSelectionMask = GetSplineSelection;
             onModeChanged(m_Mode);
         }
 
@@ -148,63 +161,91 @@ namespace TrimMesh.Editor
 
         /////////////////////////////////////////////////////////////
 
-        private void GetVertexSelection(SelectionType type)
+        private bool VertexNearestSelection(int i)
         {
+            Vector3 position = m_Model.vertices[i].position;
+            float handleSize = HandleUtility.GetHandleSize(position) * k_VertexSelectionDistance;
+
+            return HandleUtility.DistanceToCircle(m_Model.vertices[i].position, handleSize) < handleSize;
+        }
+
+        private bool VertexMarqueeSelection(int i)
+        {
+            return m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(m_Model.vertices[i].position));
+        }
+
+        private void GetVertexSelection(SelectionType type, bool selectNearest)
+        {
+            SelectionHandler selector = selectNearest ? VertexNearestSelection : VertexMarqueeSelection;
+
             for (int i = 0; i < m_Model.vertexCount; i++)
             {
-                bool isSelected = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(m_Model.vertices[i].position));
-
-                switch (type)
-                {
-                    case SelectionType.Default: m_VertexMask[i] = isSelected; break;
-                    case SelectionType.Additive: m_VertexMask[i] |= isSelected; break;
-                    case SelectionType.Subtractive: m_VertexMask[i] &= !isSelected; break;
-                }
+                bool isSelected = selector(i);
+                UpdateSelectionMask(type, m_VertexMask, i, isSelected);
             }
         }
 
-        private void GetSegmentSelection(SelectionType type)
+        /////////////////////////////////////////////////////////////
+
+        private bool SegmentNearestSelection(int i)
         {
+            SplineSegment segment = m_Model.segments[i];
+            return HandleUtility.DistanceToLine(segment.vertexA.position, segment.vertexB.position) < k_SegmentSelectionDistance;
+        }
+
+        private bool SegmentMarqueeSelection(int i)
+        {
+            Vector3 position = (m_Model.segments[i].vertexA.position + m_Model.segments[i].vertexB.position) * 0.5f;
+            return m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(position));
+        }
+
+        private void GetSegmentSelection(SelectionType type, bool selectNearest)
+        {
+            SelectionHandler selector = selectNearest ? SegmentNearestSelection : SegmentMarqueeSelection;
+
             for (int i = 0; i < m_Model.segmentCount; i++)
             {
-                float3 position = (m_Model.segments[i].vertexA.position + m_Model.segments[i].vertexB.position) * 0.5f;
-                bool isSelected = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(position));
-
-                switch (type)
-                {
-                    case SelectionType.Default: m_SegmentMask[i] = isSelected; break;
-                    case SelectionType.Additive: m_SegmentMask[i] |= isSelected; break;
-                    case SelectionType.Subtractive: m_SegmentMask[i] &= !isSelected; break;
-                }
+                bool isSelected = selector(i);
+                UpdateSelectionMask(type, m_SegmentMask, i, isSelected);
             }
         }
 
-        private void GetSplineSelection(SelectionType type)
+        /////////////////////////////////////////////////////////////
+
+        private void GetSplineSelection(SelectionType type, bool selectNearest)
         {
-            HashSet<Spline> selectedSplines = new();
+            SelectionHandler selector = selectNearest ? SegmentNearestSelection : SegmentMarqueeSelection;
+            HashSet<Spline> splineSelection = new();
 
             for (int i = 0; i < m_Model.segmentCount; i++)
             {
-                float3 position = (m_Model.segments[i].vertexA.position + m_Model.segments[i].vertexB.position) * 0.5f;
-                bool isSelected = m_SelectionRect.Contains(HandleUtility.WorldToGUIPoint(position));
+                bool isSelected = selector(i);
+                UpdateSelectionMask(type, m_SegmentMask, i, isSelected);
 
                 if (isSelected)
                 {
-                    selectedSplines.Add(m_Model.segments[i].spline);
+                    splineSelection.Add(m_Model.segments[i].spline);
                 }
             }
 
             for (int i = 0; i < m_Model.segmentCount; i++)
             {
-                SplineSegment segment = m_Model.segments[i];
-                bool isSelected = selectedSplines.Contains(segment.spline);
-
-                switch (type)
+                if (splineSelection.Contains(m_Model.segments[i].spline))
                 {
-                    case SelectionType.Default: m_SegmentMask[i] = isSelected; break;
-                    case SelectionType.Additive: m_SegmentMask[i] |= isSelected; break;
-                    case SelectionType.Subtractive: m_SegmentMask[i] &= !isSelected; break;
+                    m_SegmentMask[i] = true;
                 }
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void UpdateSelectionMask(SelectionType type, BitArray array, int i, bool isSelected)
+        {
+            switch (type)
+            {
+                case SelectionType.Default: array[i] = isSelected; break;
+                case SelectionType.Additive: array[i] |= isSelected; break;
+                case SelectionType.Subtractive: array[i] &= !isSelected; break;
             }
         }
 
@@ -227,6 +268,11 @@ namespace TrimMesh.Editor
                     case KeyCode.Alpha3: SetSplineMode(); e.Use(); break;
                 }
             }
+        }
+
+        private bool GetSelectionMode()
+        {
+            return math.length(m_SelectionStart - m_SelectionEnd) < k_MarqueeSelectionThreshold;
         }
 
         private SelectionType GetSelectionType(Event e)
