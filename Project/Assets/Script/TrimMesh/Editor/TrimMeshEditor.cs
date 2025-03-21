@@ -130,7 +130,7 @@ namespace TrimMesh.Editor
 
         private void OnUndoRedo()
         {
-            m_Serializer.DeserializeModel(m_Model);
+            m_Serializer.Load(m_Model);
         }
 
         /////////////////////////////////////////////////////////////
@@ -142,28 +142,21 @@ namespace TrimMesh.Editor
             m_Model = new();
             m_Serializer = new(trimMesh);
 
-            m_Selection = new(m_Model);
-            m_Operator = new(m_Model, m_Selection);
-            m_View = new(m_Model, m_Selection, trimMesh.transform);
-
-            m_Model.onModelChanged += m_Serializer.SerializeModel;
-            m_Model.onModelChanged += m_Selection.AllocateBitmasks;
-            m_Selection.onSelectionModeChanged += m_View.OnSelectionModeChanged;
+            m_View = new(m_Model, trimMesh.transform);
+            m_Operator = new(m_Model, m_View);
 
             Undo.undoRedoPerformed += OnUndoRedo;
             SceneView.duringSceneGui += DuringSceneGUI;
 
             SetupOverlay();
             ShowOverlay();
+            OnUndoRedo();
         }
 
         /////////////////////////////////////////////////////////////
 
         private void OnDisable()
         {
-            m_Model.onModelChanged = null;
-            m_Selection.onSelectionModeChanged = null;
-
             HideOverlay();
 
             Undo.undoRedoPerformed -= OnUndoRedo;

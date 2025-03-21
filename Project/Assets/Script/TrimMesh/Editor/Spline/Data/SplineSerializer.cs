@@ -30,15 +30,11 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        //public void DeserializeModel(List<Spline> splines, List<SplineSegment> segments, List<SplineVertex> vertices)
-        public void DeserializeModel(SplineModel model)
+        public void Load(SplineModel model)
         {
-            m_SerializedObject.Update();
-
-            model.splines.Clear();
-            model.vertices.Clear();
-            model.segments.Clear();
             Dictionary<int, SplineVertex> vertexLookup = new();
+            m_SerializedObject.Update();
+            model.Clear();
 
             // Load vertex data
             for (int i = 0; i < m_Vertices.arraySize; i++)
@@ -75,10 +71,10 @@ namespace TrimMesh
                     newSpline.segments.Add(newSegment);
                 }
             }
+            model.NotifyModelChanged();
         }
 
-
-        public void SerializeModel(SplineModel model)
+        public void Save(SplineModel model)
         {
             m_Splines.arraySize = model.splineCount;
             m_Vertices.arraySize = model.vertexCount;

@@ -14,13 +14,14 @@ namespace TrimMesh.Editor
 
         /////////////////////////////////////////////////////////////
 
-        public SplineView(SplineModel model, SplineSelection selection, Transform transform)
+        public SplineView(SplineModel model, Transform transform)
         {
             m_Model = model;
-            m_Selection = selection;
-            m_Matrix = transform.localToWorldMatrix;
+            m_Selection = new(model);
+            m_Model.onModelChanged += m_Selection.AllocateBitmasks;
 
             m_Cursor = MouseCursor.Arrow;
+            m_Matrix = transform.localToWorldMatrix;
         }
 
         /////////////////////////////////////////////////////////////
@@ -40,11 +41,6 @@ namespace TrimMesh.Editor
             SetMouseCursor(e);
             m_Selection.Update(e);
             DrawSpline(e);
-        }
-
-        public void OnSelectionModeChanged(SelectMode mode)
-        {
-            // Change input handling
         }
 
         /////////////////////////////////////////////////////////////

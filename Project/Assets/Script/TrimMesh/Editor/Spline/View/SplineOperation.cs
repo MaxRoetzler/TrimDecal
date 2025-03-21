@@ -4,17 +4,17 @@ namespace TrimMesh.Editor
 {
     public class SplineOperation
     {
+        private SplineView m_View;
         private SplineModel m_Model;
-        private SplineSelection m_Selection;
         private ISplineOperation m_Operation;
         private ISplineOperation[] m_Operations;
 
         /////////////////////////////////////////////////////////////
 
-        public SplineOperation(SplineModel model, SplineSelection selection)
+        public SplineOperation(SplineModel model, SplineView view)
         {
+            m_View = view;
             m_Model = model;
-            m_Selection = selection;
             m_Operations = new ISplineOperation[]
             {
                 new OperationCreate(),
@@ -33,7 +33,7 @@ namespace TrimMesh.Editor
                 {
                     foreach (ISplineOperation operation in m_Operations)
                     {
-                        if (operation.CanEnter(e, m_Selection))
+                        if (operation.CanEnter(e, m_View.selection))
                         {
                             m_Operation = operation;
                             m_Operation.Setup();
@@ -45,7 +45,7 @@ namespace TrimMesh.Editor
                 }
             }
 
-            m_Operation?.Perform(e, m_Selection, m_Model);
+            m_Operation?.Perform(e, m_View.selection, m_Model);
         }
     }
 }

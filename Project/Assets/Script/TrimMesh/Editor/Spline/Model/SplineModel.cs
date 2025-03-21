@@ -72,7 +72,7 @@ namespace TrimMesh
             m_Segments.Add(segment);
             m_Splines.Add(spline);
 
-            onModelChanged(this);
+            NotifyModelChanged();
             return spline;
         }
 
@@ -88,7 +88,7 @@ namespace TrimMesh
             }
 
             m_Splines.RemoveAt(index);
-            onModelChanged(this);
+            NotifyModelChanged();
         }
 
         public SplineSegment AppendSegment(Spline spline, SplineVertex vertexA, float3 position)
@@ -103,7 +103,7 @@ namespace TrimMesh
             m_Vertices.Add(vertexB);
             m_Segments.Add(segment);
 
-            onModelChanged(this);
+            NotifyModelChanged();
             return segment;
         }
 
@@ -151,8 +151,7 @@ namespace TrimMesh
                     m_Splines.RemoveAt(i);
                 }
             }
-
-            onModelChanged(this);
+            NotifyModelChanged();
         }
 
         public Spline GetSplineFromVertex(SplineVertex vertex)
@@ -162,6 +161,20 @@ namespace TrimMesh
                 return m_Splines[m_Splines.IndexOf(segment.spline)];
             }
             return default;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        public void NotifyModelChanged()
+        {
+            onModelChanged?.Invoke(this);
+        }
+
+        public void Clear()
+        {
+            m_Vertices.Clear();
+            m_Segments.Clear();
+            m_Splines.Clear();
         }
     }
 }
