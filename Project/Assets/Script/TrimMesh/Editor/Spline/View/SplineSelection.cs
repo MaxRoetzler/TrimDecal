@@ -15,7 +15,6 @@ namespace TrimMesh.Editor
         private const float k_MarqueeSelectionThreshold = 1.0f;
 
         private int m_ControlId;
-        private int m_SelectionCount;
         private SelectMode m_Mode;
         private Rect m_SelectionRect;
         private Vector3 m_SelectionEnd;
@@ -24,17 +23,23 @@ namespace TrimMesh.Editor
         private SplineModel m_Model;
         private BitArray m_VertexMask;
         private BitArray m_SegmentMask;
+        private int m_NearestVertex;
+        private int m_NearestSegment;
+        private int m_Count;
 
         /////////////////////////////////////////////////////////////
 
         public SplineSelection(SplineModel model)
         {
             m_Model = model;
-            m_Mode = SelectMode.None;
-
-            AllocateData();
+            m_NearestVertex = -1;
+            m_NearestSegment = -1;
+            m_Mode = SelectMode.Vertex;
 
             GetSelectionMask = GetVertexSelection;
+            GetSelectionHover = FindNearestVertex;
+
+            AllocateBitmasks(model);
         }
 
         /////////////////////////////////////////////////////////////
@@ -42,6 +47,11 @@ namespace TrimMesh.Editor
         public enum SelectionType { Default, Additive, Subtractive }
 
         /////////////////////////////////////////////////////////////
+
+        public int count
+        {
+            get => m_Count;
+        }
 
         public SelectMode mode
         {
@@ -58,9 +68,14 @@ namespace TrimMesh.Editor
             get => m_SegmentMask;
         }
 
-        public int selectionCount
+        public int nearestVertex
         {
-            get => m_SelectionCount;
+            get => m_NearestVertex;
+        }
+
+        public int nearestSegment
+        {
+            get => m_NearestSegment;
         }
 
         /////////////////////////////////////////////////////////////
@@ -69,8 +84,11 @@ namespace TrimMesh.Editor
         private delegate void SelectionChangedHandler(SelectionType type, bool selectNearest);
         private SelectionChangedHandler GetSelectionMask;
 
+        private delegate void SelectionHoverHandler();
+        private SelectionHoverHandler GetSelectionHover;
+
         public delegate void SelectModeChangedHandler(SelectMode mode);
-        public SelectModeChangedHandler onModeChanged;
+        public SelectModeChangedHandler onSelectionModeChanged;
 
         /////////////////////////////////////////////////////////////
 
@@ -80,6 +98,7 @@ namespace TrimMesh.Editor
             EventType eventType = e.GetTypeForControl(m_ControlId);
 
             DetectSelectionInput(e);
+            GetSelectionHover();
 
             if (eventType == EventType.Repaint)
             {
@@ -94,7 +113,6 @@ namespace TrimMesh.Editor
                     GUIUtility.hotControl = m_ControlId;
                     m_SelectionStart = e.mousePosition;
                     m_SelectionEnd = e.mousePosition;
-
                     e.Use();
                 }
 
@@ -118,8 +136,9 @@ namespace TrimMesh.Editor
             }
         }
 
-        public void AllocateData()
+        public void AllocateBitmasks(SplineModel model)
         {
+            m_Count = 0;
             m_VertexMask = new(m_Model.vertexCount);
             m_SegmentMask = new(m_Model.segmentCount);
         }
@@ -132,7 +151,8 @@ namespace TrimMesh.Editor
             Deselect();
 
             GetSelectionMask = GetVertexSelection;
-            onModeChanged(m_Mode);
+            GetSelectionHover = FindNearestVertex;
+            onSelectionModeChanged(m_Mode);
         }
 
         public void SetSegmentMode()
@@ -141,7 +161,8 @@ namespace TrimMesh.Editor
             Deselect();
 
             GetSelectionMask = GetSegmentSelection;
-            onModeChanged(m_Mode);
+            GetSelectionHover = FindNearestSegment;
+            onSelectionModeChanged(m_Mode);
         }
 
         public void SetSplineMode()
@@ -150,11 +171,15 @@ namespace TrimMesh.Editor
             Deselect();
 
             GetSelectionMask = GetSplineSelection;
-            onModeChanged(m_Mode);
+            GetSelectionHover = FindNearestSegment;
+            onSelectionModeChanged(m_Mode);
         }
 
         public void Deselect()
         {
+            m_Count = 0;
+            m_NearestVertex = -1;
+            m_NearestSegment = -1;
             m_VertexMask.SetAll(false);
             m_SegmentMask.SetAll(false);
         }
@@ -185,6 +210,24 @@ namespace TrimMesh.Editor
             }
         }
 
+        private void FindNearestVertex()
+        {
+            m_NearestVertex = -1;
+
+            for (int i = 0; i < m_Model.vertexCount; i++)
+            {
+                Vector3 position = m_Model.vertices[i].position;
+                float handleSize = HandleUtility.GetHandleSize(position) * k_VertexSelectionDistance;
+
+                if (HandleUtility.DistanceToCircle(m_Model.vertices[i].position, handleSize) < handleSize)
+                {
+                    m_NearestVertex = i;
+                    GUI.changed = true;
+                    return;
+                }
+            }
+        }
+
         /////////////////////////////////////////////////////////////
 
         private bool SegmentNearestSelection(int i)
@@ -208,6 +251,11 @@ namespace TrimMesh.Editor
                 bool isSelected = selector(i);
                 UpdateSelectionMask(type, m_SegmentMask, i, isSelected);
             }
+        }
+
+        private void FindNearestSegment()
+        {
+
         }
 
         /////////////////////////////////////////////////////////////
@@ -241,11 +289,18 @@ namespace TrimMesh.Editor
 
         private void UpdateSelectionMask(SelectionType type, BitArray array, int i, bool isSelected)
         {
+            bool wasSelected = array[i];
+
             switch (type)
             {
                 case SelectionType.Default: array[i] = isSelected; break;
                 case SelectionType.Additive: array[i] |= isSelected; break;
                 case SelectionType.Subtractive: array[i] &= !isSelected; break;
+            }
+
+            if (wasSelected != array[i])
+            {
+                m_Count += array[i] ? 1 : -1;
             }
         }
 

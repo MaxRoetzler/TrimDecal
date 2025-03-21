@@ -1,30 +1,26 @@
-using Unity.Mathematics;
 using System.Collections.Generic;
+using System.Collections;
+using Unity.Mathematics;
 
 namespace TrimMesh
 {
     public class SplineModel
     {
-        private const float k_MergeVertexThreshold = 0.01f;
-
         private List<Spline> m_Splines;
         private List<SplineVertex> m_Vertices;
         private List<SplineSegment> m_Segments;
-        private SplineSerializer m_Serializer;
 
-        public SplineModel(TrimMesh trimMesh)
+        public SplineModel()
         {
             m_Splines = new();
             m_Vertices = new();
             m_Segments = new();
-            m_Serializer = new(trimMesh);
-            m_Serializer.Deserialize(m_Splines, m_Segments, m_Vertices);
         }
 
         /////////////////////////////////////////////////////////////
 
-        public delegate void ModelChangedHandler();
-        public ModelChangedHandler onDataChanged;
+        public delegate void ModelChangedHandler(SplineModel model);
+        public ModelChangedHandler onModelChanged;
 
         /////////////////////////////////////////////////////////////
 
@@ -60,13 +56,7 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        public void Update()
-        {
-            m_Serializer.Deserialize(m_Splines, m_Segments, m_Vertices);
-            onDataChanged();
-        }
-
-        public void CreateSpline(float3 positionA, float3 positionB)
+        public Spline CreateSpline(float3 positionA, float3 positionB)
         {
             Spline spline = new();
             SplineVertex vertexA = new(positionA);
@@ -77,12 +67,13 @@ namespace TrimMesh
             vertexA.segments.Add(segment);
             vertexB.segments.Add(segment);
 
-            m_Segments.Add(segment);
             m_Vertices.Add(vertexA);
             m_Vertices.Add(vertexB);
+            m_Segments.Add(segment);
             m_Splines.Add(spline);
 
-            m_Serializer.Serialize(this);
+            onModelChanged(this);
+            return spline;
         }
 
         public void RemoveSpline(int index)
@@ -93,43 +84,84 @@ namespace TrimMesh
             {
                 m_Vertices.Remove(segment.vertexA);
                 m_Vertices.Remove(segment.vertexB);
-                m_Segments.Add(segment);
+                m_Segments.Remove(segment);
             }
 
             m_Splines.RemoveAt(index);
-            m_Serializer.Serialize(this);
+            onModelChanged(this);
         }
 
-        public void ExtendSpline(int splineIndex, int vertexIndex, float3 position)
+        public SplineSegment AppendSegment(Spline spline, SplineVertex vertexA, float3 position)
         {
-            Spline spline = m_Splines[splineIndex];
-            SplineVertex vertexA = m_Vertices[vertexIndex];
             SplineVertex vertexB = new(position);
             SplineSegment segment = new(vertexA, vertexB, spline);
 
             spline.segments.Add(segment);
+            vertexA.segments.Add(segment);
             vertexB.segments.Add(segment);
 
             m_Vertices.Add(vertexB);
             m_Segments.Add(segment);
 
-            m_Serializer.Serialize(this);
+            onModelChanged(this);
+            return segment;
         }
 
-        /////////////////////////////////////////////////////////////
-
-        private void RemoveIsolatedVertices()
+        public void RemoveVertex(BitArray vertexMask)
         {
-            List<SplineVertex> isolatedVertices = new();
-            foreach (SplineVertex vertex in m_Vertices)
+            HashSet<SplineVertex> verticesToRemove = new();
+            HashSet<SplineSegment> segmentsToRemove = new();
+
+            for (int i = 0; i < m_Vertices.Count; i++)
             {
-                if (vertex.segments.Count == 0)
+                if (vertexMask[i])
                 {
-                    isolatedVertices.Add(vertex);
+                    SplineVertex vertex = m_Vertices[i];
+                    verticesToRemove.Add(vertex);
+
+                    foreach (SplineSegment segment in vertex.segments)
+                    {
+                        SplineVertex connectedVertex = vertex != segment.vertexA ? segment.vertexA : segment.vertexB;
+                        connectedVertex.segments.Remove(segment);
+                        segmentsToRemove.Add(segment);
+
+                        if (connectedVertex.segments.Count == 0)
+                        {
+                            verticesToRemove.Add(connectedVertex);
+                        }
+                    }
                 }
             }
 
-            isolatedVertices.ForEach(x => m_Vertices.Remove(x));
+            foreach (SplineSegment segment in segmentsToRemove)
+            {
+                segment.spline.segments.Remove(segment);
+                m_Segments.Remove(segment);
+            }
+
+            foreach (SplineVertex vertex in verticesToRemove)
+            {
+                m_Vertices.Remove(vertex);
+            }
+
+            for (int i = m_Splines.Count - 1; i >= 0; i--)
+            {
+                if (m_Splines[i].segmentCount == 0)
+                {
+                    m_Splines.RemoveAt(i);
+                }
+            }
+
+            onModelChanged(this);
+        }
+
+        public Spline GetSplineFromVertex(SplineVertex vertex)
+        {
+            foreach (SplineSegment segment in vertex.segments)
+            {
+                return m_Splines[m_Splines.IndexOf(segment.spline)];
+            }
+            return default;
         }
     }
 }

@@ -62,7 +62,7 @@ namespace TrimMesh.Editor
 
         private void RegisterEvents()
         {
-            m_View.selection.onModeChanged += OnSelectionModeChanged;
+            m_View.selection.onSelectionModeChanged += OnSelectionModeChanged;
 
             m_ButtonModeVertex.clicked += m_View.selection.SetVertexMode;
             m_ButtonModeSegment.clicked += m_View.selection.SetSegmentMode;
@@ -73,7 +73,7 @@ namespace TrimMesh.Editor
         {
             if (m_View != null)
             {
-                m_View.selection.onModeChanged -= OnSelectionModeChanged;
+                m_View.selection.onSelectionModeChanged -= OnSelectionModeChanged;
                 m_ButtonModeVertex.clicked -= m_View.selection.SetVertexMode;
                 m_ButtonModeSegment.clicked -= m_View.selection.SetSegmentMode;
                 m_ButtonModeSpline.clicked -= m_View.selection.SetSplineMode;

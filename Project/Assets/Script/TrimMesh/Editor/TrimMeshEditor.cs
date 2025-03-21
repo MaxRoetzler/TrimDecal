@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
+using System.Collections;
 
 namespace TrimMesh.Editor
 {
@@ -17,6 +18,9 @@ namespace TrimMesh.Editor
         private SplineModel m_Model;
         private TrimMesh m_TrimMesh;
         private TrimMeshOverlay m_Overlay;
+        private SplineOperation m_Operator;
+        private SplineSelection m_Selection;
+        private SplineSerializer m_Serializer;
 
         // Fields for testing ...
         private Vector3 m_CreateSplinePositionA;
@@ -25,6 +29,7 @@ namespace TrimMesh.Editor
         private int m_ExtendSplineIndex;
         private int m_ExtendSplineVertex;
         private Vector3 m_ExtendSplinePosition;
+        private string m_DeleteVertexIndices;
 
         public override void OnInspectorGUI()
         {
@@ -58,7 +63,29 @@ namespace TrimMesh.Editor
 
             if (GUILayout.Button("Extend Spline"))
             {
-                m_Model.ExtendSpline(m_ExtendSplineIndex, m_ExtendSplineVertex, m_ExtendSplinePosition);
+                Spline spline = m_Model.splines[m_ExtendSplineIndex];
+                SplineVertex vertex = m_Model.vertices[m_ExtendSplineVertex];
+                m_Model.AppendSegment(spline, vertex, m_ExtendSplinePosition);
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space();
+
+            EditorGUILayout.BeginVertical("Box");
+            m_DeleteVertexIndices = EditorGUILayout.TextField("Vertex Indices", m_DeleteVertexIndices);
+
+            if (GUILayout.Button("Delete Vertex"))
+            {
+                BitArray vertexMask = new(m_Model.vertexCount);
+                string[] indices = m_DeleteVertexIndices.Split(',');
+                Debug.Log(indices);
+
+                foreach(string index in indices)
+                {
+                    int i = int.Parse(index);
+                    vertexMask[i] = true;
+                }
+
+                m_Model.RemoveVertex(vertexMask);
             }
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
@@ -96,12 +123,14 @@ namespace TrimMesh.Editor
 
         private void DuringSceneGUI(SceneView sceneView)
         {
-            m_View.Update();
+            Event e = Event.current;
+            m_Operator.SceneGUI(e);
+            m_View.SceneGUI(e);
         }
 
         private void OnUndoRedo()
         {
-            m_Model.Update();
+            m_Serializer.DeserializeModel(m_Model);
         }
 
         /////////////////////////////////////////////////////////////
@@ -110,8 +139,16 @@ namespace TrimMesh.Editor
         {
             TrimMesh trimMesh = (TrimMesh)target;
 
-            m_Model = new(trimMesh);
-            m_View = new(m_Model, trimMesh.transform);
+            m_Model = new();
+            m_Serializer = new(trimMesh);
+
+            m_Selection = new(m_Model);
+            m_Operator = new(m_Model, m_Selection);
+            m_View = new(m_Model, m_Selection, trimMesh.transform);
+
+            m_Model.onModelChanged += m_Serializer.SerializeModel;
+            m_Model.onModelChanged += m_Selection.AllocateBitmasks;
+            m_Selection.onSelectionModeChanged += m_View.OnSelectionModeChanged;
 
             Undo.undoRedoPerformed += OnUndoRedo;
             SceneView.duringSceneGui += DuringSceneGUI;
@@ -124,7 +161,8 @@ namespace TrimMesh.Editor
 
         private void OnDisable()
         {
-            m_View.Dispose();
+            m_Model.onModelChanged = null;
+            m_Selection.onSelectionModeChanged = null;
 
             HideOverlay();
 

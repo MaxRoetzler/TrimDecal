@@ -4,6 +4,7 @@
     "references": [
         "TrimMesh",
         "TrimMesh.Editor",
+        "Unity.Mathematics",
         "UnityEditor.TestRunner",
         "UnityEngine.TestRunner"
     ],

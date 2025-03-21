@@ -6,7 +6,7 @@ namespace TrimMesh
     public class SplineVertex
     {
         public float3 position;
-        public HashSet<SplineSegment> segments;
+        public List<SplineSegment> segments;
 
         public SplineVertex(float3 position)
         {

@@ -1,7 +1,6 @@
-﻿using UnityEngine;
-using UnityEditor;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Unity.Mathematics;
+using UnityEditor;
 
 namespace TrimMesh
 {
@@ -31,13 +30,14 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        public void Deserialize(List<Spline> splines, List<SplineSegment> segments, List<SplineVertex> vertices)
+        //public void DeserializeModel(List<Spline> splines, List<SplineSegment> segments, List<SplineVertex> vertices)
+        public void DeserializeModel(SplineModel model)
         {
-            m_SerializedObject.Update(); // Can get out of sync with Undo/Redo
+            m_SerializedObject.Update();
 
-            splines.Clear();
-            vertices.Clear();
-            segments.Clear();
+            model.splines.Clear();
+            model.vertices.Clear();
+            model.segments.Clear();
             Dictionary<int, SplineVertex> vertexLookup = new();
 
             // Load vertex data
@@ -46,7 +46,7 @@ namespace TrimMesh
                 float3 position = m_Vertices.GetArrayElementAtIndex(i).vector3Value;
                 SplineVertex newVertex = new(position);
 
-                vertices.Add(newVertex);
+                model.vertices.Add(newVertex);
                 vertexLookup.Add(i, newVertex);
             }
 
@@ -54,7 +54,7 @@ namespace TrimMesh
             for (int i = 0; i < m_Splines.arraySize; i++)
             {
                 Spline newSpline = new();
-                splines.Add(newSpline);
+                model.splines.Add(newSpline);
 
                 SerializedProperty propSpline = m_Splines.GetArrayElementAtIndex(i);
                 SerializedProperty propSegments = propSpline.FindPropertyRelative(k_NameOfSegments);
@@ -69,38 +69,37 @@ namespace TrimMesh
                     SplineVertex vertexB = vertexLookup[indexB];
                     SplineSegment newSegment = new(vertexA, vertexB, newSpline);
 
-                    segments.Add(newSegment);
+                    model.segments.Add(newSegment);
                     vertexA.segments.Add(newSegment);
                     vertexB.segments.Add(newSegment);
                     newSpline.segments.Add(newSegment);
                 }
             }
-            Debug.Log($"Deserialized, Vertices: {vertices.Count}, Segments: {segments.Count} Splines: {splines.Count}");
         }
 
-        public void Serialize(SplineModel splineModel)
+
+        public void SerializeModel(SplineModel model)
         {
-            m_Splines.arraySize = splineModel.splineCount;
-            m_Vertices.arraySize = splineModel.vertexCount;
+            m_Splines.arraySize = model.splineCount;
+            m_Vertices.arraySize = model.vertexCount;
             Dictionary<SplineVertex, int> vertexLookup = new();
 
             // Write vertex data
-            for (int i = 0; i < splineModel.vertexCount; i++)
+            for (int i = 0; i < model.vertexCount; i++)
             {
                 SerializedProperty vertexProperty = m_Vertices.GetArrayElementAtIndex(i);
-                vertexProperty.vector3Value = splineModel.vertices[i].position;
-                vertexLookup.Add(splineModel.vertices[i], i);
+                vertexProperty.vector3Value = model.vertices[i].position;
+                vertexLookup.Add(model.vertices[i], i);
             }
 
             // Write spline data
-            for (int i = 0; i < splineModel.splineCount; i++)
+            for (int i = 0; i < model.splineCount; i++)
             {
-                Spline spline = splineModel.splines[i];
+                Spline spline = model.splines[i];
                 SerializedProperty splineProperty = m_Splines.GetArrayElementAtIndex(i);
                 SerializedProperty segmentsProperty = splineProperty.FindPropertyRelative(k_NameOfSegments);
 
                 segmentsProperty.arraySize = spline.segmentCount;
-
                 for (int j = 0; j < spline.segmentCount; j++)
                 {
                     SerializedProperty segmentProperty = segmentsProperty.GetArrayElementAtIndex(j);
@@ -109,7 +108,6 @@ namespace TrimMesh
                 }
             }
             m_SerializedObject.ApplyModifiedProperties();
-            Debug.Log($"Serialized, Vertices: {m_Vertices.arraySize}, Splines: {m_Splines.arraySize}");
         }
     }
 }
