@@ -140,8 +140,7 @@ namespace TrimMesh.Editor
             TrimMesh trimMesh = (TrimMesh)target;
 
             m_Model = new();
-            m_Serializer = new(trimMesh);
-
+            m_Serializer = new(m_Model, trimMesh);
             m_View = new(m_Model, trimMesh.transform);
             m_Operator = new(m_Model, m_View);
 

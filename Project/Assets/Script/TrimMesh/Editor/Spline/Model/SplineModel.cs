@@ -109,9 +109,11 @@ namespace TrimMesh
 
         public void RemoveVertex(BitArray vertexMask)
         {
+            HashSet<Spline> inspectSplines = new();
             HashSet<SplineVertex> verticesToRemove = new();
             HashSet<SplineSegment> segmentsToRemove = new();
 
+            // Collect vertices and segments to remove
             for (int i = 0; i < m_Vertices.Count; i++)
             {
                 if (vertexMask[i])
@@ -124,6 +126,7 @@ namespace TrimMesh
                         SplineVertex connectedVertex = vertex != segment.vertexA ? segment.vertexA : segment.vertexB;
                         connectedVertex.segments.Remove(segment);
                         segmentsToRemove.Add(segment);
+                        inspectSplines.Add(segment.spline);
 
                         if (connectedVertex.segments.Count == 0)
                         {
@@ -144,15 +147,61 @@ namespace TrimMesh
                 m_Vertices.Remove(vertex);
             }
 
-            for (int i = m_Splines.Count - 1; i >= 0; i--)
+            foreach (Spline spline in inspectSplines)
             {
-                if (m_Splines[i].segmentCount == 0)
-                {
-                    m_Splines.RemoveAt(i);
-                }
+                SplitAndSortSpline(spline);
             }
+
             NotifyModelChanged();
         }
+
+        public void RemoveSegment(BitArray segmentMask)
+        {
+            HashSet<Spline> inspectSplines = new();
+            HashSet<SplineVertex> inspectVertices = new();
+            HashSet<SplineSegment> segmentsToRemove = new();
+
+            for (int i = 0; i < m_Segments.Count; i++)
+            {
+                if (segmentMask[i])
+                {
+                    SplineSegment segment = m_Segments[i];
+
+                    segmentsToRemove.Add(segment);
+                    segment.vertexA.segments.Remove(segment);
+                    segment.vertexB.segments.Remove(segment);
+
+                    inspectSplines.Add(segment.spline);
+                    inspectVertices.Add(segment.vertexA);
+                    inspectVertices.Add(segment.vertexB);
+                }
+            }
+
+            // Delete segments
+            foreach (SplineSegment segment in segmentsToRemove)
+            {
+                segment.spline.segments.Remove(segment);
+                m_Segments.Remove(segment);
+            }
+
+            // Delete isolated vertices
+            foreach (SplineVertex vertex in inspectVertices)
+            {
+                if (vertex.segments.Count == 0)
+                {
+                    m_Vertices.Remove(vertex);
+                }
+            }
+
+            // Sort and split splines
+            foreach(Spline spline in inspectSplines)
+            {
+                SplitAndSortSpline(spline);
+            }
+
+            NotifyModelChanged();
+        }
+
 
         public Spline GetSplineFromVertex(SplineVertex vertex)
         {
@@ -176,5 +225,92 @@ namespace TrimMesh
             m_Segments.Clear();
             m_Splines.Clear();
         }
+
+        /////////////////////////////////////////////////////////////
+
+        private void SplitAndSortSpline(Spline spline)
+        {
+            if (spline.segmentCount == 0)
+            {
+                m_Splines.Remove(spline);
+                return;
+            }
+
+            List<Spline> newSplines = new();
+            HashSet<SplineSegment> visited = new();
+
+            foreach (SplineSegment segment in spline.segments)
+            {
+                if (!visited.Contains(segment))
+                {
+                    Spline newSpline = new();
+                    List<SplineSegment> orderedSegments = new();
+
+                    SplineSegment startSegment = FindSplineStart(segment);
+                    Queue<SplineSegment> queue = new();
+                    queue.Enqueue(startSegment);
+
+                    while (queue.Count > 0)
+                    {
+                        SplineSegment current = queue.Dequeue();
+                        if (visited.Add(current))
+                        {
+                            orderedSegments.Add(current);
+                            current.spline = newSpline;
+
+                            SplineVertex nextVertex = GetNextVertex(current, orderedSegments);
+                            if (nextVertex != null)
+                            {
+                                foreach (SplineSegment neighbor in nextVertex.segments)
+                                {
+                                    if (!visited.Contains(neighbor))
+                                    {
+                                        queue.Enqueue(neighbor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    newSpline.segments.AddRange(orderedSegments);
+                    newSplines.Add(newSpline);
+                }
+            }
+            m_Splines.Remove(spline);
+            m_Splines.AddRange(newSplines);
+        }
+
+        private SplineSegment FindSplineStart(SplineSegment segment)
+        {
+            if (segment.vertexA.segments.Count == 1)
+            {
+                return segment;
+            }
+            if (segment.vertexB.segments.Count == 1)
+            {
+                return segment;
+            }
+            return segment;
+        }
+
+        private SplineVertex GetNextVertex(SplineSegment current, List<SplineSegment> orderedSegments)
+        {
+            SplineVertex vertexA = current.vertexA;
+            SplineVertex vertexB = current.vertexB;
+
+            foreach (SplineSegment segment in vertexA.segments)
+            {
+                if (!orderedSegments.Contains(segment))
+                    return vertexA;
+            }
+
+            foreach (SplineSegment segment in vertexB.segments)
+            {
+                if (!orderedSegments.Contains(segment))
+                    return vertexB;
+            }
+
+            return null;
+        }
+
     }
 }

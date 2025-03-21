@@ -18,8 +18,8 @@ namespace TrimMesh.Editor
             m_Operations = new ISplineOperation[]
             {
                 new OperationCreate(),
-                new OperationDeleteVertex(),
-                new OperationDeleteSegment(),
+                new OperationRemoveVertex(),
+                new OperationRemoveSegment(),
             };
         }
 

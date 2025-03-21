@@ -165,6 +165,67 @@ namespace TrimMesh.Test
             Assert.AreEqual(1, model.splines.Count, "Expected the splines to remain.");
         }
 
+        [Test]
+        public void RemoveSegment_ShouldRemoveEndSegment()
+        {
+            SplineModel model = GetSplineModel();
+            float3 positionA = new(0, 0, 0);
+            float3 positionB = new(1, 0, 0);
+            float3 positionC = new(1, 0, 1);
+
+            Spline spline = model.CreateSpline(positionA, positionB);
+            model.AppendSegment(spline, model.vertices[1], positionC);
+
+            BitArray mask = new(new[] { true, false});
+            model.RemoveSegment(mask);
+
+            Assert.AreEqual(2, model.vertices.Count, "Expected two vertices to remain.");
+            Assert.AreEqual(1, model.segments.Count, "Expected one segment to remain.");
+            Assert.AreEqual(1, model.splines.Count, "Expected the splines to remain.");
+        }
+
+        [Test]
+        public void RemoveSegment_ShouldRemoveAllSegments()
+        {
+            SplineModel model = GetSplineModel();
+            float3 positionA = new(0, 0, 0);
+            float3 positionB = new(1, 0, 0);
+            float3 positionC = new(1, 0, 1);
+
+            Spline spline = model.CreateSpline(positionA, positionB);
+            model.AppendSegment(spline, model.vertices[1], positionC);
+
+            BitArray mask = new(new[] { true, true });
+            model.RemoveSegment(mask);
+
+            Assert.AreEqual(0, model.vertices.Count, "Expected no vertices to remain.");
+            Assert.AreEqual(0, model.segments.Count, "Expected no segments to remain.");
+            Assert.AreEqual(0, model.splines.Count, "Expected no splines to remain.");
+        }
+
+        [Test]
+        public void RemoveSegment_ShouldSplitSplines_WhenMiddleSegmentDeleted()
+        {
+            SplineModel model = GetSplineModel();
+            float3 positionA = new(0, 0, 0);
+            float3 positionB = new(1, 0, 0);
+            float3 positionC = new(1, 0, 1);
+            float3 positionD = new(2, 0, 0);
+
+            Spline spline = model.CreateSpline(positionA, positionB);
+            model.AppendSegment(spline, model.vertices[1], positionC);
+            model.AppendSegment(spline, model.vertices[2], positionD);
+
+            BitArray mask = new(new[] { false, true, false });
+            model.RemoveSegment(mask);
+
+            Assert.AreEqual(4, model.vertices.Count, "Expected four vertices to remain.");
+            Assert.AreEqual(2, model.segments.Count, "Expected two segments to remain.");
+            Assert.AreEqual(2, model.splines.Count, "Expected two splines to remain, due to the split.");
+        }
+
+        /////////////////////////////////////////////////////////////
+
         private SplineModel GetSplineModel()
         {
             SplineModel model = new();

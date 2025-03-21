@@ -20,12 +20,14 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        public SplineSerializer(TrimMesh trimMesh)
+        public SplineSerializer(SplineModel model, TrimMesh trimMesh)
         {
             m_SerializedObject = new SerializedObject(trimMesh);
             m_SplineContainer = m_SerializedObject.FindProperty(k_NameOfContainer);
             m_Vertices = m_SplineContainer.FindPropertyRelative(k_NameOfVertices);
             m_Splines = m_SplineContainer.FindPropertyRelative(k_NameOfSplines);
+
+            model.onModelChanged += Save;
         }
 
         /////////////////////////////////////////////////////////////
