@@ -73,10 +73,10 @@ namespace TrimMesh
                     newSpline.segments.Add(newSegment);
                 }
             }
-            model.NotifyModelChanged();
+            model.NotifyModelChanged(SplineModification.Structure);
         }
 
-        public void Save(SplineModel model)
+        public void Save(SplineModel model, SplineModification modification)
         {
             m_Splines.arraySize = model.splineCount;
             m_Vertices.arraySize = model.vertexCount;

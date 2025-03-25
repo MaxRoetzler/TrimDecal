@@ -8,10 +8,19 @@ namespace TrimMesh
         public float3 position;
         public List<SplineSegment> segments;
 
+        /////////////////////////////////////////////////////////////
+
         public SplineVertex(float3 position)
         {
             segments = new();
             this.position = position;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        public int segmentCount
+        {
+            get => segments.Count;
         }
     }
 }

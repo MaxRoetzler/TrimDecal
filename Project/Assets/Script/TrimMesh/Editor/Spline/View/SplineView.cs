@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace TrimMesh.Editor
 {
-
     public class SplineView
     {
         private Matrix4x4 m_Matrix;
@@ -65,8 +64,9 @@ namespace TrimMesh.Editor
                     SplineSegment segment = m_Model.segments[i];
                     Vector3 positionA = segment.vertexA.position;
                     Vector3 positionB = segment.vertexB.position;
+                    bool isHover = m_Selection.nearestSegment == i;
 
-                    Handles.color = GetSelectionColor(m_Selection.segmentMask[i], false);
+                    Handles.color = GetSelectionColor(m_Selection.segmentMask[i], isHover);
                     Handles.DrawLine(positionA, positionB);
                 }
             }

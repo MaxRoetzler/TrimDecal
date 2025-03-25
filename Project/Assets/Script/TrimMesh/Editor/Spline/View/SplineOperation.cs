@@ -18,8 +18,11 @@ namespace TrimMesh.Editor
             m_Operations = new ISplineOperation[]
             {
                 new OperationCreate(),
-                new OperationRemoveVertex(),
-                new OperationRemoveSegment(),
+                new OperationVertexMove(),
+                new OperationVertexRemove(),
+                new OperationVertexDissolve(),
+                new OperationVertexConnect(),
+                new OperationSegmentRemove(),
             };
         }
 
@@ -27,7 +30,7 @@ namespace TrimMesh.Editor
 
         public void SceneGUI(Event e)
         {
-            if (e.isKey && e.type == EventType.KeyDown)
+            if (!e.alt && (e.type == EventType.KeyDown || e.type == EventType.MouseDown))
             {
                 if (m_Operation == null)
                 {
@@ -36,8 +39,8 @@ namespace TrimMesh.Editor
                         if (operation.CanEnter(e, m_View.selection))
                         {
                             m_Operation = operation;
-                            m_Operation.Setup();
-                            m_Operation.onActionCompleted += () => m_Operation = null;
+                            m_Operation.Setup(e, m_View.selection, m_Model);
+                            m_Operation.onCompleted += () => m_Operation = null;
                             e.Use();
                             break;
                         }

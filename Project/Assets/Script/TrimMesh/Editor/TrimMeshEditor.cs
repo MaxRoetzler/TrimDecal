@@ -14,12 +14,12 @@ namespace TrimMesh.Editor
         [SerializeField]
         private VisualTreeAsset m_UxmlOverlay;
 
+        private Tool m_LastTool;
         private SplineView m_View;
         private SplineModel m_Model;
         private TrimMesh m_TrimMesh;
         private TrimMeshOverlay m_Overlay;
         private SplineOperation m_Operator;
-        private SplineSelection m_Selection;
         private SplineSerializer m_Serializer;
 
         // Fields for testing ...
@@ -42,7 +42,7 @@ namespace TrimMesh.Editor
             m_CreateSplinePositionB = EditorGUILayout.Vector3Field("Position B", m_CreateSplinePositionB);
             if (GUILayout.Button("Create Spline"))
             {
-                m_Model.CreateSpline(m_CreateSplinePositionA, m_CreateSplinePositionB);
+                m_Model.CreateSpline(positionA: m_CreateSplinePositionA, positionB: m_CreateSplinePositionB);
             }
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
@@ -79,7 +79,7 @@ namespace TrimMesh.Editor
                 string[] indices = m_DeleteVertexIndices.Split(',');
                 Debug.Log(indices);
 
-                foreach(string index in indices)
+                foreach (string index in indices)
                 {
                     int i = int.Parse(index);
                     vertexMask[i] = true;
@@ -144,6 +144,9 @@ namespace TrimMesh.Editor
             m_View = new(m_Model, trimMesh.transform);
             m_Operator = new(m_Model, m_View);
 
+            m_LastTool = Tools.current;
+            Tools.current = Tool.None;
+
             Undo.undoRedoPerformed += OnUndoRedo;
             SceneView.duringSceneGui += DuringSceneGUI;
 
@@ -158,6 +161,7 @@ namespace TrimMesh.Editor
         {
             HideOverlay();
 
+            Tools.current = m_LastTool;
             Undo.undoRedoPerformed -= OnUndoRedo;
             SceneView.duringSceneGui -= DuringSceneGUI;
         }

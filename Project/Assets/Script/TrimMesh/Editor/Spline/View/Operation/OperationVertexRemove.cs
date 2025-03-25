@@ -3,21 +3,21 @@ using UnityEngine;
 namespace TrimMesh.Editor
 {
 
-    public class OperationRemoveVertex : ISplineOperation
+    public class OperationVertexRemove : ISplineOperation
     {
-        public event ActionCompletedHandler onActionCompleted;
+        public event OperationCompletedHandler onCompleted;
 
         public bool CanEnter(Event e, SplineSelection selection)
         {
             return e.keyCode == KeyCode.Delete && selection.mode == SelectMode.Vertex && selection.count > 0;
         }
 
-        public void Setup() { }
+        public void Setup(Event e, SplineSelection selection, SplineModel model) { }
 
         public void Perform(Event e, SplineSelection selection, SplineModel model)
         {
             model.RemoveVertex(selection.vertexMask);
-            onActionCompleted();
+            onCompleted();
             e.Use();
         }
     }

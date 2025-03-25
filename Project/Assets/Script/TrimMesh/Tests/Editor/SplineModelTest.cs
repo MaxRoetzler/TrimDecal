@@ -8,22 +8,35 @@ namespace TrimMesh.Test
     public class SplineModelTest
     {
         [Test]
-        public void CreateSpline_Should_AddSplineWithTwoVerticesAndOneSegment()
+        public void CreateSegment_Should_CreateNewSpline()
         {
             SplineModel model = GetSplineModel();
-
             float3 positionA = new(0, 0, 0);
             float3 positionB = new(1, 0, 0);
 
             Spline createdSpline = model.CreateSpline(positionA, positionB);
-            Assert.AreEqual(1, model.splines.Count, "Expected exactly one spline.");
-            Assert.AreEqual(1, model.segments.Count, "Expected exactly one segment.");
-            Assert.AreEqual(2, model.vertices.Count, "Expected exactly two vertices.");
+            Assert.AreEqual(1, model.splines.Count, "Expected 1 spline.");
+            Assert.AreEqual(1, model.segments.Count, "Expected 1 segment.");
+            Assert.AreEqual(2, model.vertices.Count, "Expected 2 vertices.");
 
             SplineSegment segment = model.segments[0];
             Assert.AreSame(createdSpline, segment.spline, "Segment should be linked to the created spline.");
             Assert.AreSame(segment, model.vertices[0].segments.Contains(segment) ? segment : null, "Vertex A should contain the segment.");
             Assert.AreSame(segment, model.vertices[1].segments.Contains(segment) ? segment : null, "Vertex B should contain the segment.");
+        }
+
+        [Test]
+        public void MergeSplines_Should_CombineSplines()
+        {
+            SplineModel model = GetSplineModel();
+
+            Spline splineA = model.CreateSpline(positionA: new float3(0, 0, 1), positionB: new float3(1, 0, 1));
+            Spline splineB = model.CreateSpline(positionA: new float3(0, 0, -1), positionB: new float3(1, 0, -1));
+            model.MergeSplines(splineA, model.vertices[0], splineB, model.vertices[2]);
+
+            Assert.AreEqual(1, model.splines.Count, "Expected 1 spline.");
+            Assert.AreEqual(3, model.segments.Count, "Expected 3 segments.");
+            Assert.AreEqual(4, model.vertices.Count, "Expected 4 vertices.");
         }
 
         [Test]
@@ -33,11 +46,11 @@ namespace TrimMesh.Test
 
             float3 positionA = new(0, 0, 0);
             float3 positionB = new(1, 0, 0);
-            model.CreateSpline(positionA, positionB);
+            model.CreateSpline(positionA: positionA, positionB: positionB);
 
-            Assert.AreEqual(1, model.splines.Count, "Expected one spline after creation.");
-            Assert.AreEqual(1, model.segments.Count, "Expected one segment after creation.");
-            Assert.AreEqual(2, model.vertices.Count, "Expected two vertices after creation.");
+            Assert.AreEqual(1, model.splines.Count, "Expected 1 spline after creation.");
+            Assert.AreEqual(1, model.segments.Count, "Expected 1 segment after creation.");
+            Assert.AreEqual(2, model.vertices.Count, "Expected 2 vertices after creation.");
 
             model.RemoveSpline(0);
             Assert.AreEqual(0, model.splines.Count, "Expected no splines after removal.");
@@ -50,21 +63,21 @@ namespace TrimMesh.Test
         {
             SplineModel model = GetSplineModel();
 
-            model.CreateSpline(new float3(0, 0, 0), new float3(1, 1, 1));
-            model.CreateSpline(new float3(2, 2, 2), new float3(3, 3, 3));
+            model.CreateSpline(positionA: new float3(0, 0, 0), positionB: new float3(1, 1, 1));
+            model.CreateSpline(positionA: new float3(2, 2, 2), positionB: new float3(3, 3, 3));
 
-            Assert.AreEqual(2, model.splines.Count, "Expected two splines.");
-            Assert.AreEqual(2, model.segments.Count, "Expected two segments.");
-            Assert.AreEqual(4, model.vertices.Count, "Expected four vertices.");
+            Assert.AreEqual(2, model.splines.Count, "Expected 2 splines.");
+            Assert.AreEqual(2, model.segments.Count, "Expected 2 segments.");
+            Assert.AreEqual(4, model.vertices.Count, "Expected 4 vertices.");
 
             model.RemoveSpline(0);
-            Assert.AreEqual(1, model.splines.Count, "Expected one remaining spline.");
-            Assert.AreEqual(1, model.segments.Count, "Expected one remaining segment.");
-            Assert.AreEqual(2, model.vertices.Count, "Expected two remaining vertices.");
+            Assert.AreEqual(1, model.splines.Count, "Expected 1 remaining spline.");
+            Assert.AreEqual(1, model.segments.Count, "Expected 1 remaining segment.");
+            Assert.AreEqual(2, model.vertices.Count, "Expected 2 remaining vertices.");
 
             Spline remainingSpline = model.splines[0];
             Assert.NotNull(remainingSpline, "Remaining spline should not be null.");
-            Assert.AreEqual(1, remainingSpline.segmentCount, "Remaining spline should have one segment.");
+            Assert.AreEqual(1, remainingSpline.segmentCount, "Remaining spline should have 1 segment.");
         }
 
         [Test]
@@ -139,9 +152,9 @@ namespace TrimMesh.Test
             BitArray mask = new(new[] { true, false, false });
             model.RemoveVertex(mask);
 
-            Assert.AreEqual(2, model.vertices.Count, "Expected two vertices to remain.");
-            Assert.AreEqual(1, model.segments.Count, "Expected one segment to remain.");
-            Assert.AreEqual(1, model.splines.Count, "Expected one spline to remain.");
+            Assert.AreEqual(2, model.vertices.Count, "Expected 2 vertices to remain.");
+            Assert.AreEqual(1, model.segments.Count, "Expected 1 segment to remain.");
+            Assert.AreEqual(1, model.splines.Count, "Expected 1 spline to remain.");
         }
 
         [Test]
@@ -160,8 +173,8 @@ namespace TrimMesh.Test
             BitArray mask = new(new[] { false, true, false, false });
             model.RemoveVertex(mask);
 
-            Assert.AreEqual(2, model.vertices.Count, "Expected two vertices to be removed, and two remain.");
-            Assert.AreEqual(1, model.segments.Count, "Expected two segments to be reomoved, and one remains.");
+            Assert.AreEqual(2, model.vertices.Count, "Expected 2 vertices to be removed, and 2 remain.");
+            Assert.AreEqual(1, model.segments.Count, "Expected 2 segments to be reomoved, and 1 remains.");
             Assert.AreEqual(1, model.splines.Count, "Expected the splines to remain.");
         }
 
@@ -176,11 +189,11 @@ namespace TrimMesh.Test
             Spline spline = model.CreateSpline(positionA, positionB);
             model.AppendSegment(spline, model.vertices[1], positionC);
 
-            BitArray mask = new(new[] { true, false});
+            BitArray mask = new(new[] { true, false });
             model.RemoveSegment(mask);
 
-            Assert.AreEqual(2, model.vertices.Count, "Expected two vertices to remain.");
-            Assert.AreEqual(1, model.segments.Count, "Expected one segment to remain.");
+            Assert.AreEqual(2, model.vertices.Count, "Expected 2 vertices to remain.");
+            Assert.AreEqual(1, model.segments.Count, "Expected 1 segment to remain.");
             Assert.AreEqual(1, model.splines.Count, "Expected the splines to remain.");
         }
 
@@ -219,9 +232,9 @@ namespace TrimMesh.Test
             BitArray mask = new(new[] { false, true, false });
             model.RemoveSegment(mask);
 
-            Assert.AreEqual(4, model.vertices.Count, "Expected four vertices to remain.");
-            Assert.AreEqual(2, model.segments.Count, "Expected two segments to remain.");
-            Assert.AreEqual(2, model.splines.Count, "Expected two splines to remain, due to the split.");
+            Assert.AreEqual(4, model.vertices.Count, "Expected 4 vertices to remain.");
+            Assert.AreEqual(2, model.segments.Count, "Expected 2 segments to remain.");
+            Assert.AreEqual(2, model.splines.Count, "Expected 2 splines to remain, due to the split.");
         }
 
         /////////////////////////////////////////////////////////////
@@ -229,7 +242,7 @@ namespace TrimMesh.Test
         private SplineModel GetSplineModel()
         {
             SplineModel model = new();
-            model.onModelChanged += (_) => { };
+            model.onModelChanged += (_, _) => { };
 
             return model;
         }

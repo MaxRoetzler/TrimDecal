@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections;
 using Unity.Mathematics;
+using System.Linq;
 
 namespace TrimMesh
 {
@@ -19,7 +20,7 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        public delegate void ModelChangedHandler(SplineModel model);
+        public delegate void ModelChangedHandler(SplineModel model, SplineModification modification);
         public ModelChangedHandler onModelChanged;
 
         /////////////////////////////////////////////////////////////
@@ -58,22 +59,63 @@ namespace TrimMesh
 
         public Spline CreateSpline(float3 positionA, float3 positionB)
         {
-            Spline spline = new();
             SplineVertex vertexA = new(positionA);
             SplineVertex vertexB = new(positionB);
+            m_Vertices.Add(vertexA);
+            m_Vertices.Add(vertexB);
+
+            return CreateSpline(vertexA, vertexB);
+        }
+
+        public Spline CreateSpline(float3 positionA, SplineVertex vertexB)
+        {
+            SplineVertex vertexA = new(positionA);
+            m_Vertices.Add(vertexA);
+
+            return CreateSpline(vertexA, vertexB);
+        }
+
+        public Spline CreateSpline(SplineVertex vertexA, float3 positionB)
+        {
+            SplineVertex vertexB = new(positionB);
+            m_Vertices.Add(vertexB);
+
+            return CreateSpline(vertexA, vertexB);
+        }
+
+        public Spline CreateSpline(SplineVertex vertexA, SplineVertex vertexB)
+        {
+            Spline spline = new();
             SplineSegment segment = new(vertexA, vertexB, spline);
 
             spline.segments.Add(segment);
             vertexA.segments.Add(segment);
             vertexB.segments.Add(segment);
-
-            m_Vertices.Add(vertexA);
-            m_Vertices.Add(vertexB);
             m_Segments.Add(segment);
             m_Splines.Add(spline);
 
-            NotifyModelChanged();
+            NotifyModelChanged(SplineModification.Structure);
             return spline;
+        }
+
+        public void MergeSplines(Spline splineA, SplineVertex vertexA, Spline splineB, SplineVertex vertexB)
+        {
+            SplineSegment newSegment = new(vertexA, vertexB, splineA);
+            splineA.segments.Add(newSegment);
+            vertexA.segments.Add(newSegment);
+            vertexB.segments.Add(newSegment);
+            m_Segments.Add(newSegment);
+
+            // Append splineB to splineA
+            foreach (SplineSegment segment in splineB.segments)
+            {
+                segment.spline = splineA;
+                splineA.segments.Add(segment);
+            }
+
+            m_Splines.Remove(splineB);
+            SortSplineSegments(splineA);
+            NotifyModelChanged(SplineModification.Structure);
         }
 
         public void RemoveSpline(int index)
@@ -88,8 +130,10 @@ namespace TrimMesh
             }
 
             m_Splines.RemoveAt(index);
-            NotifyModelChanged();
+            NotifyModelChanged(SplineModification.Structure);
         }
+
+        /////////////////////////////////////////////////////////////
 
         public SplineSegment AppendSegment(Spline spline, SplineVertex vertexA, float3 position)
         {
@@ -103,56 +147,22 @@ namespace TrimMesh
             m_Vertices.Add(vertexB);
             m_Segments.Add(segment);
 
-            NotifyModelChanged();
+            NotifyModelChanged(SplineModification.Structure);
             return segment;
         }
 
-        public void RemoveVertex(BitArray vertexMask)
+        public SplineSegment AppendSegment(Spline spline, SplineVertex vertexA, SplineVertex vertexB)
         {
-            HashSet<Spline> inspectSplines = new();
-            HashSet<SplineVertex> verticesToRemove = new();
-            HashSet<SplineSegment> segmentsToRemove = new();
+            SplineSegment segment = new(vertexA, vertexB, spline);
 
-            // Collect vertices and segments to remove
-            for (int i = 0; i < m_Vertices.Count; i++)
-            {
-                if (vertexMask[i])
-                {
-                    SplineVertex vertex = m_Vertices[i];
-                    verticesToRemove.Add(vertex);
+            spline.segments.Add(segment);
+            vertexA.segments.Add(segment);
+            vertexB.segments.Add(segment);
 
-                    foreach (SplineSegment segment in vertex.segments)
-                    {
-                        SplineVertex connectedVertex = vertex != segment.vertexA ? segment.vertexA : segment.vertexB;
-                        connectedVertex.segments.Remove(segment);
-                        segmentsToRemove.Add(segment);
-                        inspectSplines.Add(segment.spline);
+            m_Segments.Add(segment);
 
-                        if (connectedVertex.segments.Count == 0)
-                        {
-                            verticesToRemove.Add(connectedVertex);
-                        }
-                    }
-                }
-            }
-
-            foreach (SplineSegment segment in segmentsToRemove)
-            {
-                segment.spline.segments.Remove(segment);
-                m_Segments.Remove(segment);
-            }
-
-            foreach (SplineVertex vertex in verticesToRemove)
-            {
-                m_Vertices.Remove(vertex);
-            }
-
-            foreach (Spline spline in inspectSplines)
-            {
-                SplitAndSortSpline(spline);
-            }
-
-            NotifyModelChanged();
+            NotifyModelChanged(SplineModification.Structure);
+            return segment;
         }
 
         public void RemoveSegment(BitArray segmentMask)
@@ -194,14 +204,82 @@ namespace TrimMesh
             }
 
             // Sort and split splines
-            foreach(Spline spline in inspectSplines)
+            foreach (Spline spline in inspectSplines)
             {
                 SplitAndSortSpline(spline);
             }
 
-            NotifyModelChanged();
+            NotifyModelChanged(SplineModification.Structure);
         }
 
+        /////////////////////////////////////////////////////////////
+
+        public void RemoveVertex(BitArray vertexMask)
+        {
+            HashSet<Spline> splinesToValidate = new();
+            HashSet<SplineVertex> verticesToRemove = new();
+            HashSet<SplineSegment> segmentsToRemove = new();
+
+            for (int i = 0; i < m_Vertices.Count; i++)
+            {
+                if (vertexMask[i])
+                {
+                    SplineVertex vertex = m_Vertices[i];
+                    verticesToRemove.Add(vertex);
+
+                    foreach (SplineSegment segment in vertex.segments)
+                    {
+                        SplineVertex connectedVertex = vertex != segment.vertexA ? segment.vertexA : segment.vertexB;
+                        connectedVertex.segments.Remove(segment);
+                        segmentsToRemove.Add(segment);
+                        splinesToValidate.Add(segment.spline);
+
+                        if (connectedVertex.segments.Count == 0)
+                        {
+                            verticesToRemove.Add(connectedVertex);
+                        }
+                    }
+                }
+            }
+
+            foreach (SplineSegment segment in segmentsToRemove)
+            {
+                segment.spline.segments.Remove(segment);
+                m_Segments.Remove(segment);
+            }
+
+            foreach (SplineVertex vertex in verticesToRemove)
+            {
+                m_Vertices.Remove(vertex);
+            }
+
+            foreach (Spline spline in splinesToValidate)
+            {
+                SplitAndSortSpline(spline);
+            }
+
+            NotifyModelChanged(SplineModification.Structure);
+        }
+
+        public void DissolveVertex(BitArray vertexMask)
+        {
+
+        }
+
+
+        public void TranslateVertex(BitArray vertexMask, float3 offset)
+        {
+            // Apply offset to all selected vertices
+            for (int i = 0; i < m_Vertices.Count; i++)
+            {
+                if (vertexMask[i])
+                {
+                    m_Vertices[i].position += offset;
+                }
+            }
+
+            NotifyModelChanged(SplineModification.Offset);
+        }
 
         public Spline GetSplineFromVertex(SplineVertex vertex)
         {
@@ -214,9 +292,9 @@ namespace TrimMesh
 
         /////////////////////////////////////////////////////////////
 
-        public void NotifyModelChanged()
+        public void NotifyModelChanged(SplineModification modification)
         {
-            onModelChanged?.Invoke(this);
+            onModelChanged?.Invoke(this, modification);
         }
 
         public void Clear()
@@ -227,6 +305,45 @@ namespace TrimMesh
         }
 
         /////////////////////////////////////////////////////////////
+
+        private void SortSplineSegments(Spline spline)
+        {
+            if (spline.segmentCount == 0)
+            {
+                m_Splines.Remove(spline);
+                return;
+            }
+
+            List<SplineSegment> orderedSegments = new();
+            HashSet<SplineSegment> visited = new();
+
+            SplineSegment startSegment = FindSplineStart(spline.segments[0]);
+            Queue<SplineSegment> queue = new();
+            queue.Enqueue(startSegment);
+
+            while (queue.Count > 0)
+            {
+                SplineSegment current = queue.Dequeue();
+                if (visited.Add(current))
+                {
+                    orderedSegments.Add(current);
+
+                    SplineVertex nextVertex = GetNextVertex(current, orderedSegments);
+                    if (nextVertex != null)
+                    {
+                        foreach (SplineSegment neighbor in nextVertex.segments)
+                        {
+                            if (!visited.Contains(neighbor))
+                            {
+                                queue.Enqueue(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+            spline.segments.Clear();
+            spline.segments.AddRange(orderedSegments);
+        }
 
         private void SplitAndSortSpline(Spline spline)
         {

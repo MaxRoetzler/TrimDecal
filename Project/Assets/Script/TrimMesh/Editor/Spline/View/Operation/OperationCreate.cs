@@ -4,19 +4,18 @@ using UnityEngine;
 
 namespace TrimMesh.Editor
 {
-    // TODO : Handle consecutive segment creation
     public class OperationCreate : ISplineOperation
     {
         private Plane m_Plane;
-        private float3 m_EndPoint;
-        private float3 m_StartPoint;
-        private bool m_HasStartPoint;
-        private SplineVertex m_EndVertex;
-        private SplineVertex m_StartVertex;
+        private float3 m_PositionA;
+        private float3 m_PositionB;
+        private bool m_HasPositionA;
+        private SplineVertex m_VertexB;
+        private SplineVertex m_VertexA;
 
         /////////////////////////////////////////////////////////////
 
-        public event ActionCompletedHandler onActionCompleted;
+        public event OperationCompletedHandler onCompleted;
 
         /////////////////////////////////////////////////////////////
 
@@ -25,14 +24,16 @@ namespace TrimMesh.Editor
             return e.control && e.keyCode == KeyCode.C;
         }
 
-        public void Setup()
+        public void Setup(Event e, SplineSelection selection, SplineModel model)
         {
-            m_EndPoint = default;
-            m_EndVertex = default;
-            m_StartPoint = default;
-            m_StartVertex = default;
-            m_HasStartPoint = false;
+            m_VertexA = default;
+            m_VertexB = default;
+            m_PositionA = default;
+            m_PositionB = default;
+            m_HasPositionA = false;
             m_Plane = new Plane(Vector3.up, 0f);
+
+            selection.SetVertexMode();
         }
 
         public void Perform(Event e, SplineSelection selection, SplineModel model)
@@ -42,10 +43,10 @@ namespace TrimMesh.Editor
 
             if (eventType == EventType.Repaint)
             {
-                if (m_HasStartPoint)
+                if (m_HasPositionA)
                 {
                     Handles.color = SplineConstant.colorDefault;
-                    Handles.DrawDottedLine(m_StartPoint, m_EndPoint, SplineConstant.lineDotGap);
+                    Handles.DrawDottedLine(m_PositionA, m_PositionB, SplineConstant.lineDotGap);
                 }
             }
 
@@ -53,31 +54,31 @@ namespace TrimMesh.Editor
             {
                 if (e.button == 0)
                 {
-                    if (!m_HasStartPoint)
+                    if (!m_HasPositionA)
                     {
                         if (selection.nearestVertex != -1)
                         {
-                            m_StartVertex = model.vertices[selection.nearestVertex];
-                            m_StartPoint = m_StartVertex.position;
-                            m_EndPoint = m_StartPoint;
-                            m_HasStartPoint = true;
+                            m_VertexA = model.vertices[selection.nearestVertex];
+                            m_PositionA = m_VertexA.position;
+                            m_PositionB = m_PositionA;
+                            m_HasPositionA = true;
                         }
                         else if (RaycastUtility.RaycastPlane(e.mousePosition, m_Plane, out hit))
                         {
-                            m_StartPoint = hit.point;
-                            m_EndPoint = m_StartPoint;
-                            m_HasStartPoint = true;
+                            m_PositionA = hit.point;
+                            m_PositionB = m_PositionA;
+                            m_HasPositionA = true;
                         }
                         else
                         {
-                            onActionCompleted();
+                            onCompleted();
                         }
                     }
                     else
                     {
                         if (selection.nearestVertex != -1)
                         {
-                            m_EndVertex = model.vertices[selection.nearestVertex];
+                            m_VertexB = model.vertices[selection.nearestVertex];
                         }
                         CreateSegment(model);
                     }
@@ -86,21 +87,21 @@ namespace TrimMesh.Editor
                 else if (e.button == 1)
                 {
                     e.Use();
-                    onActionCompleted();
+                    onCompleted();
                 }
             }
             else if (eventType == EventType.MouseMove)
             {
                 if (RaycastUtility.RaycastPlane(e.mousePosition, m_Plane, out hit))
                 {
-                    m_EndPoint = hit.point;
+                    m_PositionB = hit.point;
                 }
                 e.Use();
             }
             else if (eventType == EventType.KeyDown && e.keyCode == KeyCode.Escape)
             {
                 e.Use();
-                onActionCompleted();
+                onCompleted();
             }
         }
 
@@ -108,28 +109,131 @@ namespace TrimMesh.Editor
 
         private void CreateSegment(SplineModel model)
         {
-            // Create new spline
-            if (m_StartVertex == null && m_EndVertex == null)
+            bool hasVertexA = m_VertexA != null;
+            bool hasVertexB = m_VertexB != null;
+            int segmentsA = hasVertexA ? m_VertexA.segmentCount : 0;
+            int segmentsB = hasVertexB ? m_VertexB.segmentCount : 0;
+
+            // Case 0) A is new, B is new : Create new spline and continue
+            // A •---• B
+            if (!hasVertexA && !hasVertexB)
             {
-                Spline spline = model.CreateSpline(m_StartPoint, m_EndPoint);
+                Spline spline = model.CreateSpline(m_PositionA, m_PositionB);
                 SplineSegment segment = spline.segments[0];
 
-                m_StartVertex = segment.vertexB;
-                m_StartPoint = m_StartVertex.position;
-                m_EndPoint = m_StartPoint;
+                m_VertexA = segment.vertexB;
+                m_PositionA = m_VertexA.position;
+                m_PositionB = m_PositionA;
                 return;
             }
 
-            // Append segment to existing spline
-            if (m_StartVertex != null && m_EndVertex == null)
+            // Case 1) A is middle, B is new : Create new spline and continue
+            //   |
+            // A •---• B
+            //   |
+            if (segmentsA > 1 && !hasVertexB)
             {
-                Spline spline = model.GetSplineFromVertex(m_StartVertex);
-                SplineSegment segment = model.AppendSegment(spline, m_StartVertex, m_EndPoint);
+                Spline spline = model.CreateSpline(m_VertexA, m_PositionB);
+                SplineSegment segment = spline.segments[0];
 
-                m_StartVertex = m_StartVertex != segment.vertexA ? segment.vertexA : segment.vertexB;
-                m_StartPoint = m_StartVertex.position;
-                m_EndPoint = m_StartPoint;
-                m_EndVertex = null;
+                m_VertexA = segment.vertexB;
+                m_PositionA = m_VertexA.position;
+                m_PositionB = m_PositionA;
+                return;
+            }
+
+            // Case 2) A is new, B is middle: Create new spline and exit
+            //       |
+            // A •---• B
+            //       |
+            if (!hasVertexA && segmentsB > 1)
+            {
+                model.CreateSpline(m_PositionA, m_VertexB);
+                onCompleted();
+                return;
+            }
+
+            // Case 3) A is middle, B is middle: Create new spline and exit
+            //   |   |
+            // A •---• B
+            //   |   |
+            if (segmentsA > 1 && segmentsB > 1)
+            {
+                model.CreateSpline(m_VertexA, m_VertexB);
+                onCompleted();
+                return;
+            }
+
+            // Case 4) A is end, B is new: Append new segment to A and continue
+            // A •---• B
+            //   |
+            if (!hasVertexB)
+            {
+                Spline spline = model.GetSplineFromVertex(m_VertexA);
+                SplineSegment segment = model.AppendSegment(spline, m_VertexA, m_PositionB);
+
+                m_VertexA = m_VertexA != segment.vertexA ? segment.vertexA : segment.vertexB;
+                m_PositionA = m_VertexA.position;
+                m_PositionB = m_PositionA;
+                m_VertexB = null;
+                return;
+            }
+
+            // Case 5) A is new, B is end: Append new segment to B and exit
+            // A •---• B
+            //       |
+            if (!hasVertexA)
+            {
+                Spline spline = model.GetSplineFromVertex(m_VertexB);
+                model.AppendSegment(spline, m_VertexB, m_PositionA);
+                onCompleted();
+                return;
+            }
+
+            // Case 6) A is mid, B is end: Append new segment to B and exit
+            //   |
+            // A •---• B
+            //   |   |
+            if (segmentsA > 1 && segmentsB == 1)
+            {
+                Spline spline = model.GetSplineFromVertex(m_VertexB);
+                model.AppendSegment(spline, m_VertexB, m_VertexA);
+                onCompleted();
+                return;
+            }
+
+            // Case 7) A is end, B is mid: Append new segment to A and exit
+            //       |
+            // A •---• B
+            //   |   |
+            if (segmentsA == 1 && segmentsB > 1)
+            {
+                Spline spline = model.GetSplineFromVertex(m_VertexA);
+                model.AppendSegment(spline, m_VertexA, m_PositionB);
+                onCompleted();
+                return;
+            }
+
+            // Case 8, 9) A is end, B is end
+            // A •---• B
+            //   |   |
+            if (segmentsA == 1 && segmentsB == 1)
+            {
+                Spline splineA = model.GetSplineFromVertex(m_VertexA);
+                Spline splineB = model.GetSplineFromVertex(m_VertexB);
+
+                // Case 8) Same spline, append segment and exit
+                if (splineA == splineB)
+                {
+                    model.AppendSegment(splineA, m_VertexA, m_VertexB);
+                }
+                // Case 9) Different splines, merge splines and exit
+                else
+                {
+                    model.MergeSplines(splineA, m_VertexA, splineB, m_VertexB);
+                }
+
+                onCompleted();
                 return;
             }
         }

@@ -3,17 +3,13 @@ using System.Collections;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
+using System;
 
 namespace TrimMesh.Editor
 {
     // TODO : Add Double Click On Element to Select All
-
     public class SplineSelection
     {
-        private const float k_VertexSelectionDistance = 0.12f;
-        private const float k_SegmentSelectionDistance = 20.0f;
-        private const float k_MarqueeSelectionThreshold = 1.0f;
-
         private int m_ControlId;
         private SelectMode m_Mode;
         private Rect m_SelectionRect;
@@ -39,7 +35,7 @@ namespace TrimMesh.Editor
             GetSelectionMask = GetVertexSelection;
             GetSelectionHover = FindNearestVertex;
 
-            AllocateBitmasks(model);
+            AllocateBitmasks(model, SplineModification.Structure);
         }
 
         /////////////////////////////////////////////////////////////
@@ -136,11 +132,14 @@ namespace TrimMesh.Editor
             }
         }
 
-        public void AllocateBitmasks(SplineModel model)
+        public void AllocateBitmasks(SplineModel model, SplineModification modification)
         {
-            m_Count = 0;
-            m_VertexMask = new(m_Model.vertexCount);
-            m_SegmentMask = new(m_Model.segmentCount);
+            if (modification == SplineModification.Structure)
+            {
+                m_Count = 0;
+                m_VertexMask = new(m_Model.vertexCount);
+                m_SegmentMask = new(m_Model.segmentCount);
+            }
         }
 
         /////////////////////////////////////////////////////////////
@@ -175,6 +174,35 @@ namespace TrimMesh.Editor
             onSelectionModeChanged(m_Mode);
         }
 
+        public void SelectNearestVertex()
+        {
+            if (m_NearestVertex > -1)
+            {
+                m_VertexMask[m_NearestVertex] = true;
+            }
+        }
+
+        public List<int> GetSelectedVertexIndices()
+        {
+            List<int> indices = new();
+            for (int i = 0; i < m_Model.vertexCount; i++)
+            {
+                if (m_VertexMask[i])
+                {
+                    indices.Add(i);
+                }
+            }
+            return indices;
+        }
+
+        public void SelectNearestSegment()
+        {
+            if (m_NearestSegment > -1)
+            {
+                m_SegmentMask[m_NearestSegment] = true;
+            }
+        }
+
         public void Deselect()
         {
             m_Count = 0;
@@ -189,7 +217,7 @@ namespace TrimMesh.Editor
         private bool VertexNearestSelection(int i)
         {
             Vector3 position = m_Model.vertices[i].position;
-            float handleSize = HandleUtility.GetHandleSize(position) * k_VertexSelectionDistance;
+            float handleSize = HandleUtility.GetHandleSize(position) * SplineConstant.vertexSelectionDistance;
 
             return HandleUtility.DistanceToCircle(m_Model.vertices[i].position, handleSize) < handleSize;
         }
@@ -217,7 +245,7 @@ namespace TrimMesh.Editor
             for (int i = 0; i < m_Model.vertexCount; i++)
             {
                 Vector3 position = m_Model.vertices[i].position;
-                float handleSize = HandleUtility.GetHandleSize(position) * k_VertexSelectionDistance;
+                float handleSize = HandleUtility.GetHandleSize(position) * SplineConstant.vertexSelectionDistance;
 
                 if (HandleUtility.DistanceToCircle(m_Model.vertices[i].position, handleSize) < handleSize)
                 {
@@ -233,7 +261,7 @@ namespace TrimMesh.Editor
         private bool SegmentNearestSelection(int i)
         {
             SplineSegment segment = m_Model.segments[i];
-            return HandleUtility.DistanceToLine(segment.vertexA.position, segment.vertexB.position) < k_SegmentSelectionDistance;
+            return HandleUtility.DistanceToLine(segment.vertexA.position, segment.vertexB.position) < SplineConstant.segmentSelectionDistance;
         }
 
         private bool SegmentMarqueeSelection(int i)
@@ -255,7 +283,20 @@ namespace TrimMesh.Editor
 
         private void FindNearestSegment()
         {
+            m_NearestSegment = -1;
 
+            for (int i = 0; i < m_Model.segmentCount; i++)
+            {
+                Vector3 positionA = m_Model.segments[i].vertexA.position;
+                Vector3 positionB = m_Model.segments[i].vertexB.position;
+
+                if (HandleUtility.DistanceToLine(positionA, positionB) < SplineConstant.segmentSelectionDistance)
+                {
+                    m_NearestSegment = i;
+                    GUI.changed = true;
+                    return;
+                }
+            }
         }
 
         /////////////////////////////////////////////////////////////
@@ -327,7 +368,7 @@ namespace TrimMesh.Editor
 
         private bool GetSelectionMode()
         {
-            return math.length(m_SelectionStart - m_SelectionEnd) < k_MarqueeSelectionThreshold;
+            return math.length(m_SelectionStart - m_SelectionEnd) < SplineConstant.marqueeSelectionThreshold;
         }
 
         private SelectionType GetSelectionType(Event e)
